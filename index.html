@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OZI — Quick Commerce Coverage Map | South Delhi</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,500;0,700;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --border: #e2e6ef;
+    --accent-blinkit: #d4920a;
+    --accent-zepto: #6d28d9;
+    --accent-instamart: #c2410c;
+    --accent-flipkart: #1d4ed8;
+    --accent-jiomart: #be185d;
+    --text: #0f172a;
+    --muted: #64748b;
+    --hot: #dc2626;
+    --warm: #d97706;
+    --cool: #16a34a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  
+  /* HEADER */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px; border-bottom: 1px solid var(--border);
+    background: rgba(245,246,250,0.97); position: sticky; top:0; z-index: 1000;
+    backdrop-filter: blur(20px); box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-badge {
+    background: linear-gradient(135deg,#ff6b35,#e85d04);
+    color: #ffffff; font-family: 'Space Mono', monospace;
+    font-weight: 700; font-size: 18px; padding: 5px 12px;
+    border-radius: 6px; letter-spacing: 2px;
+  }
+  .logo-sub { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .header-title { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 1px; }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+  .status-dot { width:8px; height:8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.4; } }
+  
+  /* LAYOUT */
+  .app { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 57px); }
+  
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--surface); border-right: 1px solid var(--border);
+    overflow-y: auto; display: flex; flex-direction: column; gap: 0;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+  
+  .section { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+  .section-title {
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background: var(--border); }
+  
+  /* PLATFORM TOGGLES */
+  .platform-grid { display: flex; flex-direction: column; gap: 8px; }
+  .platform-toggle {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+    border-radius: 8px; border: 1px solid var(--border); cursor: pointer;
+    transition: all 0.2s; user-select: none; position: relative; overflow: hidden;
+  }
+  .platform-toggle:hover { border-color: var(--color); }
+  .platform-toggle.active { background: rgba(0,0,0,0.03); }
+  .platform-toggle.inactive { opacity: 0.4; }
+  .platform-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .platform-name { font-weight: 500; font-size: 13px; flex: 1; }
+  .platform-count {
+    font-family: 'Space Mono', monospace; font-size: 13px;
+    color: var(--color); font-weight: 700;
+  }
+  .platform-sub { font-size: 10px; color: var(--muted); }
+  
+  /* RADIUS SELECTOR */
+  .radius-selector { display: flex; gap: 8px; }
+  .radius-btn {
+    flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text); font-family: 'Space Mono', monospace;
+    font-size: 12px; cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .radius-btn.active { background: #ff6b35; color: #fff; border-color: #ff6b35; }
+  
+  /* LOCATION CARDS */
+  .location-list { display: flex; flex-direction: column; gap: 6px; }
+  .location-card {
+    padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.2s; position: relative;
+  }
+  .location-card:hover { border-color: rgba(255,107,53,0.5); background: rgba(255,107,53,0.03); }
+  .location-card.selected { border-color: #ff6b35; background: rgba(255,107,53,0.06); }
+  .location-name { font-weight: 500; font-size: 13px; margin-bottom: 5px; }
+  .location-zone { font-size: 10px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .location-bars { display: flex; flex-direction: column; gap: 3px; }
+  .mini-bar { display: flex; align-items: center; gap: 6px; }
+  .mini-bar-label { font-size: 9px; color: var(--muted); width: 16px; font-family: 'Space Mono', monospace; }
+  .mini-bar-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+  .mini-bar-num { font-size: 9px; font-family: 'Space Mono', monospace; width: 12px; text-align: right; }
+  .location-total {
+    position: absolute; right: 10px; top: 10px;
+    font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700;
+  }
+  .total-heat-0 { color: #22c55e; }
+  .total-heat-1 { color: #84cc16; }
+  .total-heat-2 { color: #eab308; }
+  .total-heat-3 { color: var(--accent-blinkit); }
+  .total-heat-4 { color: #f97316; }
+  .total-heat-5 { color: var(--hot); }
+
+  /* MAP */
+  #map { height: 100%; width: 100%; background: #eef0f5; }
+  .leaflet-control-zoom { border: 1px solid var(--border) !important; }
+  .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; border: none !important; }
+
+  /* INSIGHTS PANEL */
+  .insights { padding: 16px 20px; }
+  .insight-cards { display: flex; flex-direction: column; gap: 8px; }
+  .insight-card {
+    padding: 10px 12px; border-radius: 8px;
+    border-left: 3px solid; background: rgba(0,0,0,0.025);
+  }
+  .insight-card.winner { border-color: var(--hot); }
+  .insight-card.bz { border-color: var(--accent-zepto); }
+  .insight-card.opportunity { border-color: #22c55e; }
+  .insight-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .insight-value { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; }
+  .insight-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  
+  /* TOOLTIP */
+  .map-tooltip {
+    background: rgba(255,255,255,0.97) !important; border: 1px solid var(--border) !important;
+    border-radius: 8px !important; padding: 10px 14px !important; color: var(--text) !important;
+    font-family: 'DM Sans', sans-serif !important; min-width: 180px;
+    backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important;
+  }
+  
+  /* LEGEND */
+  .map-legend {
+    position: absolute; bottom: 20px; right: 20px; z-index: 999;
+    background: rgba(255,255,255,0.95); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; backdrop-filter: blur(10px);
+    display: flex; flex-direction: column; gap: 6px; min-width: 160px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .legend-title { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  
+  /* ZONE SUMMARY */
+  .zone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .zone-card {
+    padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .zone-card:hover { background: rgba(0,0,0,0.03); }
+  .zone-card-name { font-size: 10px; font-weight: 500; color: var(--muted); margin-bottom: 3px; }
+  .zone-card-total { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; }
+  .zone-card-sub { font-size: 9px; color: var(--muted); }
+
+  /* scrollbar for radius toggle area */
+  .view-mode { display: flex; gap: 8px; margin-bottom: 0; }
+  .view-btn {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); font-size: 11px;
+    cursor: pointer; transition: all 0.2s; font-family: 'Space Mono', monospace;
+  }
+  .view-btn.active { background: rgba(255,107,53,0.12); color: #e85d04; border-color: #ff6b35; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span class="logo-badge">OZI</span>
+    <div>
+      <div style="font-weight:600; font-size:14px;">Quick Commerce Coverage Intelligence</div>
+      <div class="logo-sub">South Delhi — Competitor Dark Store Analysis</div>
+    </div>
+  </div>
+  <div class="header-title">20 ZONES · 5 PLATFORMS · FEB 2026</div>
+  <div class="header-right">
+    <span style="font-size:11px; color:var(--muted);">LIVE</span>
+    <div class="status-dot"></div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sidebar">
+
+    <!-- PLATFORM FILTERS -->
+    <div class="section">
+      <div class="section-title">Platforms</div>
+      <div class="platform-grid">
+        <div class="platform-toggle active" style="--color:#b8860b" data-platform="blinkit" onclick="togglePlatform('blinkit')">
+          <div class="platform-dot" style="background:#d4a017"></div>
+          <div>
+            <div class="platform-name">Blinkit</div>
+            <div class="platform-sub">Zomato / Eternal</div>
+          </div>
+          <div class="platform-count" style="color:#b8860b" id="cnt-blinkit">17</div>
+        </div>
+        <div class="platform-toggle active" style="--color:#6d28d9" data-platform="zepto" onclick="togglePlatform('zepto')">
+          <div class="platform-dot" style="background:#7c3aed"></div>
+          <div>
+            <div class="platform-name">Zepto</div>
+            <div class="platform-sub">India's fastest</div>
+          </div>
+          <div class="platform-count" style="color:#6d28d9" id="cnt-zepto">14</div>
+        </div>
+        <div class="platform-toggle active" style="--color:#ea580c" data-platform="instamart" onclick="togglePlatform('instamart')">
+          <div class="platform-dot" style="background:#ea580c"></div>
+          <div>
+            <div class="platform-name">Instamart</div>
+            <div class="platform-sub">Swiggy</div>
+          </div>
+          <div class="platform-count" style="color:#ea580c" id="cnt-instamart">10</div>
+        </div>
+        <div class="platform-toggle active" style="--color:#1d4ed8" data-platform="flipkart" onclick="togglePlatform('flipkart')">
+          <div class="platform-dot" style="background:#2563eb"></div>
+          <div>
+            <div class="platform-name">Flipkart Minutes</div>
+            <div class="platform-sub">Walmart</div>
+          </div>
+          <div class="platform-count" style="color:#1d4ed8" id="cnt-flipkart">6</div>
+        </div>
+        <div class="platform-toggle active" style="--color:#be185d" data-platform="jiomart" onclick="togglePlatform('jiomart')">
+          <div class="platform-dot" style="background:#db2777"></div>
+          <div>
+            <div class="platform-name">JioMart Express</div>
+            <div class="platform-sub">Reliance</div>
+          </div>
+          <div class="platform-count" style="color:#be185d" id="cnt-jiomart">5</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONE FILTER -->
+    <div class="section">
+      <div class="section-title">Zone Filter</div>
+      <div class="platform-grid">
+        <div class="platform-toggle active" style="--color:#ff6b35" data-zone="hauz_khas" onclick="toggleZoneFilter('hauz_khas')">
+          <div class="platform-dot" style="background:#ff6b35"></div>
+          <div>
+            <div class="platform-name">Hauz Khas Belt</div>
+            <div class="platform-sub">5 areas</div>
+          </div>
+          <div class="platform-count" style="color:#ff6b35" id="zone-cnt-hauz_khas">5</div>
+        </div>
+        <div class="platform-toggle active" style="--color:#8b5cf6" data-zone="gk" onclick="toggleZoneFilter('gk')">
+          <div class="platform-dot" style="background:#8b5cf6"></div>
+          <div>
+            <div class="platform-name">GK Belt</div>
+            <div class="platform-sub">7 areas</div>
+          </div>
+          <div class="platform-count" style="color:#8b5cf6" id="zone-cnt-gk">7</div>
+        </div>
+        <div class="platform-toggle active" style="--color:#f97316" data-zone="saket" onclick="toggleZoneFilter('saket')">
+          <div class="platform-dot" style="background:#f97316"></div>
+          <div>
+            <div class="platform-name">Saket Belt</div>
+            <div class="platform-sub">5 areas</div>
+          </div>
+          <div class="platform-count" style="color:#f97316" id="zone-cnt-saket">5</div>
+        </div>
+        <div class="platform-toggle active" style="--color:#3b82f6" data-zone="def_col" onclick="toggleZoneFilter('def_col')">
+          <div class="platform-dot" style="background:#3b82f6"></div>
+          <div>
+            <div class="platform-name">Defence Colony Belt</div>
+            <div class="platform-sub">5 areas</div>
+          </div>
+          <div class="platform-count" style="color:#3b82f6" id="zone-cnt-def_col">5</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AREA SEARCH -->
+    <div class="section">
+      <div class="section-title">Search Areas</div>
+      <input type="text" id="area-search" placeholder="Search neighbourhood..." style="
+        width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--border);
+        background:var(--bg); color:var(--text); font-size:13px; font-family:'DM Sans',sans-serif;
+      " oninput="searchAreas(this.value)">
+    </div>
+
+    <!-- RADIUS VIEW -->
+    <div class="section">
+      <div class="section-title">Analysis Radius</div>
+      <div class="radius-selector">
+        <button class="radius-btn active" onclick="setRadius(5)" id="btn-5">5 km</button>
+        <button class="radius-btn" onclick="setRadius(10)" id="btn-10">10 km</button>
+        <button class="radius-btn" onclick="setRadius(0)" id="btn-all">All</button>
+      </div>
+    </div>
+
+    <!-- ZONE SUMMARY -->
+    <div class="section">
+      <div class="section-title">Zone Summary</div>
+      <div class="zone-grid">
+        <div class="zone-card" onclick="flyToZone('hauz_khas')">
+          <div class="zone-card-name">Hauz Khas Belt</div>
+          <div class="zone-card-total" id="zt-hauz_khas" style="color:#f0c027">—</div>
+          <div class="zone-card-sub">5 neighbourhoods</div>
+        </div>
+        <div class="zone-card" onclick="flyToZone('gk')">
+          <div class="zone-card-name">GK Belt</div>
+          <div class="zone-card-total" id="zt-gk" style="color:#8b5cf6">—</div>
+          <div class="zone-card-sub">6 neighbourhoods</div>
+        </div>
+        <div class="zone-card" onclick="flyToZone('saket')">
+          <div class="zone-card-name">Saket Belt</div>
+          <div class="zone-card-total" id="zt-saket" style="color:#f97316">—</div>
+          <div class="zone-card-sub">5 neighbourhoods</div>
+        </div>
+        <div class="zone-card" onclick="flyToZone('def_col')">
+          <div class="zone-card-name">Def Col Belt</div>
+          <div class="zone-card-total" id="zt-def_col" style="color:#3b82f6">—</div>
+          <div class="zone-card-sub">5 neighbourhoods</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEY INSIGHTS -->
+    <div class="section">
+      <div class="section-title">Key Insights</div>
+      <div class="insight-cards">
+        <div class="insight-card winner">
+          <div class="insight-label">🔴 Highest Total Density (5km)</div>
+          <div class="insight-value" id="ins-dense5">Saket</div>
+          <div class="insight-sub" id="ins-dense5-sub">Loading...</div>
+        </div>
+        <div class="insight-card winner">
+          <div class="insight-label">🟠 Highest Total Density (10km)</div>
+          <div class="insight-value" id="ins-dense10">GK1/GK2</div>
+          <div class="insight-sub" id="ins-dense10-sub">Loading...</div>
+        </div>
+        <div class="insight-card bz">
+          <div class="insight-label">🟣 Most Blinkit+Zepto (5km)</div>
+          <div class="insight-value" id="ins-bz5">East of Kailash</div>
+          <div class="insight-sub" id="ins-bz5-sub">Loading...</div>
+        </div>
+        <div class="insight-card bz">
+          <div class="insight-label">🔵 Most Blinkit+Zepto (10km)</div>
+          <div class="insight-value" id="ins-bz10">Kalkaji</div>
+          <div class="insight-sub" id="ins-bz10-sub">Loading...</div>
+        </div>
+        <div class="insight-card opportunity">
+          <div class="insight-label">🟢 OZI Opportunity Gap</div>
+          <div class="insight-value" id="ins-gap">Mehrauli / Lado Sarai</div>
+          <div class="insight-sub" id="ins-gap-sub">Lowest coverage — first mover advantage</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEIGHBOURHOOD LIST -->
+    <div class="section">
+      <div class="section-title">Neighbourhoods</div>
+      <div class="location-list" id="location-list"></div>
+    </div>
+
+  </div>
+
+  <!-- MAP -->
+  <div style="position:relative; flex:1">
+    <div id="map"></div>
+    
+    <!-- LEGEND -->
+    <div class="map-legend">
+      <div class="legend-title">Heat Intensity</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff3b3b"></div>Very High (8+)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>High (6–7)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div>Medium (4–5)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Low (1–3)</div>
+      <div style="height:1px; background:var(--border); margin:4px 0"></div>
+      <div class="legend-title">Stores</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f0c027"></div>Blinkit</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Zepto</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Instamart</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Flipkart Min</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div>JioMart Exp</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA — Store counts per neighbourhood per platform
+// Based on Google Maps verification + field research (Feb 2026)
+// ============================================================
+const LOCATIONS = [
+  // Hauz Khas Belt
+  { id:'hauz_khas', name:'Hauz Khas', zone:'hauz_khas', lat:28.5494, lng:77.2001,
+    B:2, Z:2, I:1, F:1, J:0 },
+  { id:'green_park', name:'Green Park', zone:'hauz_khas', lat:28.5578, lng:77.2046,
+    B:2, Z:1, I:1, F:0, J:1 },
+  { id:'safdarjung', name:'Safdarjung Enclave', zone:'hauz_khas', lat:28.5672, lng:77.1897,
+    B:1, Z:2, I:2, F:1, J:0 },
+  { id:'yusuf_sarai', name:'Yusuf Sarai', zone:'hauz_khas', lat:28.5606, lng:77.2044,
+    B:1, Z:1, I:1, F:0, J:0 },
+  { id:'sda', name:'SDA', zone:'hauz_khas', lat:28.5504, lng:77.1978,
+    B:1, Z:1, I:0, F:0, J:0 },
+
+  // GK Belt
+  { id:'gk1', name:'Greater Kailash 1', zone:'gk', lat:28.5484, lng:77.2295,
+    B:2, Z:2, I:1, F:1, J:1 },
+  { id:'gk2', name:'Greater Kailash 2', zone:'gk', lat:28.5443, lng:77.2375,
+    B:2, Z:1, I:1, F:1, J:0 },
+  { id:'kailash_col', name:'Kailash Colony', zone:'gk', lat:28.5606, lng:77.2496,
+    B:1, Z:1, I:1, F:0, J:1 },
+  { id:'nehru_place', name:'Nehru Place', zone:'gk', lat:28.5491, lng:77.2519,
+    B:1, Z:1, I:1, F:1, J:0 },
+  { id:'kalkaji', name:'Kalkaji', zone:'gk', lat:28.5426, lng:77.2562,
+    B:2, Z:1, I:2, F:0, J:0 },
+  { id:'alaknanda', name:'Alaknanda', zone:'gk', lat:28.5311, lng:77.2638,
+    B:1, Z:1, I:0, F:0, J:0 },
+  { id:'cr_park', name:'CR Park', zone:'gk', lat:28.5250, lng:77.2484,
+    B:1, Z:1, I:1, F:0, J:1 },
+
+  // Saket Belt
+  { id:'saket', name:'Saket', zone:'saket', lat:28.5244, lng:77.2104,
+    B:3, Z:2, I:2, F:1, J:1 },
+  { id:'malviya_nagar', name:'Malviya Nagar', zone:'saket', lat:28.5320, lng:77.2132,
+    B:2, Z:1, I:1, F:1, J:0 },
+  { id:'mehrauli', name:'Mehrauli', zone:'saket', lat:28.5146, lng:77.1836,
+    B:1, Z:0, I:1, F:0, J:0 },
+  { id:'chhatarpur', name:'Chhatarpur', zone:'saket', lat:28.4954, lng:77.1848,
+    B:2, Z:1, I:0, F:0, J:0 },
+  { id:'lado_sarai', name:'Lado Sarai', zone:'saket', lat:28.5163, lng:77.2011,
+    B:1, Z:1, I:0, F:0, J:0 },
+
+  // Defence Colony Belt
+  { id:'defence_col', name:'Defence Colony', zone:'def_col', lat:28.5736, lng:77.2267,
+    B:1, Z:1, I:1, F:0, J:0 },
+  { id:'lajpat', name:'Lajpat Nagar', zone:'def_col', lat:28.5689, lng:77.2397,
+    B:2, Z:2, I:1, F:1, J:0 },
+  { id:'south_ext', name:'South Extension', zone:'def_col', lat:28.5672, lng:77.2197,
+    B:1, Z:1, I:1, F:0, J:0 },
+  { id:'jangpura', name:'Jangpura', zone:'def_col', lat:28.5887, lng:77.2434,
+    B:1, Z:0, I:0, F:0, J:0 },
+  { id:'new_friends', name:'New Friends Colony', zone:'def_col', lat:28.5716, lng:77.2795,
+    B:1, Z:1, I:0, F:0, J:0 },
+];
+
+const ZONE_CENTERS = {
+  hauz_khas: { lat: 28.557, lng: 77.198, zoom: 14 },
+  gk:        { lat: 28.543, lng: 77.252, zoom: 14 },
+  saket:     { lat: 28.520, lng: 77.205, zoom: 14 },
+  def_col:   { lat: 28.575, lng: 77.245, zoom: 14 },
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let activeRadius = 5;
+let activePlatforms = { blinkit:true, zepto:true, instamart:true, flipkart:true, jiomart:true };
+let activeZones = { hauz_khas:true, gk:true, saket:true, def_col:true };
+let visibleAreas = new Set(LOCATIONS.map(l => l.id));
+let markers = [];
+let heatLayer = null;
+let circleLayer = null;
+let currentSelected = null;
+let map;
+
+// ============================================================
+// HELPERS
+// ============================================================
+function getScore(loc) {
+  let s = 0;
+  if (activePlatforms.blinkit) s += loc.B;
+  if (activePlatforms.zepto)   s += loc.Z;
+  if (activePlatforms.instamart) s += loc.I;
+  if (activePlatforms.flipkart) s += loc.F;
+  if (activePlatforms.jiomart) s += loc.J;
+  return s;
+}
+
+function totalAll(loc) { return loc.B + loc.Z + loc.I + loc.F + loc.J; }
+
+function heatColor(score) {
+  if (score >= 8) return '#ff3b3b';
+  if (score >= 6) return '#f97316';
+  if (score >= 4) return '#eab308';
+  if (score >= 2) return '#84cc16';
+  return '#22c55e';
+}
+
+function heatClass(score) {
+  if (score >= 8) return 'total-heat-5';
+  if (score >= 7) return 'total-heat-4';
+  if (score >= 5) return 'total-heat-3';
+  if (score >= 4) return 'total-heat-2';
+  if (score >= 2) return 'total-heat-1';
+  return 'total-heat-0';
+}
+
+function dist(a, b) {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const aa = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
+}
+
+// ============================================================
+// INIT MAP
+// ============================================================
+function initMap() {
+  map = L.map('map', { center: [28.543, 77.225], zoom: 13, zoomControl: true });
+  
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CARTO',
+    subdomains: 'abcd', maxZoom: 19
+  }).addTo(map);
+  
+  renderAll();
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderAll() {
+  renderMarkers();
+  renderHeat();
+  renderSidebar();
+  updateInsights();
+  updateZoneTotals();
+  updatePlatformCounts();
+}
+
+function renderMarkers() {
+  markers.forEach(m => m.remove());
+  markers = [];
+  if (circleLayer) { circleLayer.remove(); circleLayer = null; }
+  
+  const COLORS = { B:'#d4a017', Z:'#7c3aed', I:'#ea580c', F:'#2563eb', J:'#db2777' };
+  const PLATFORMS = ['B','Z','I','F','J'];
+  const PLAT_NAMES = { B:'Blinkit', Z:'Zepto', I:'Instamart', F:'Flipkart Min', J:'JioMart Exp' };
+  const ACTIVE_MAP = { B:'blinkit', Z:'zepto', I:'instamart', F:'flipkart', J:'jiomart' };
+  
+  LOCATIONS.forEach(loc => {
+    // Skip if zone is filtered out or area is hidden
+    if (!activeZones[loc.zone] || !visibleAreas.has(loc.id)) return;
+    
+    // Main circle marker (score-colored)
+    const score = getScore(loc);
+    const color = heatColor(score);
+    const radius = 10 + score * 2.5;
+    
+    const circle = L.circleMarker([loc.lat, loc.lng], {
+      radius: Math.min(radius, 30), color: color, weight: 2,
+      fillColor: color, fillOpacity: 0.25, opacity: 0.9
+    }).addTo(map);
+    
+    // Label marker
+    const icon = L.divIcon({
+      html: `<div style="
+        background:rgba(255,255,255,0.92);
+        border:1.5px solid ${color};
+        border-radius:5px;
+        padding:2px 6px;
+        font-size:9px;
+        font-family:'Space Mono',monospace;
+        color:${color};
+        font-weight:700;
+        white-space:nowrap;
+        backdrop-filter:blur(4px);
+        box-shadow:0 2px 6px rgba(0,0,0,0.12);
+        ">${score}</div>`,
+      iconAnchor: [15, -8], className: ''
+    });
+    const label = L.marker([loc.lat, loc.lng], { icon }).addTo(map);
+    
+    // Tooltip
+    const tooltipHtml = `
+      <div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#0f172a;">${loc.name}</div>
+        <div style="font-size:10px;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">${loc.zone.replace('_',' ').toUpperCase()} BELT</div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          ${PLATFORMS.map(p => activePlatforms[ACTIVE_MAP[p]] ? `
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:6px;height:6px;border-radius:50%;background:${COLORS[p]};flex-shrink:0;"></div>
+              <span style="font-size:11px;flex:1;color:#334155;">${PLAT_NAMES[p]}</span>
+              <span style="font-family:Space Mono,monospace;font-size:11px;color:${COLORS[p]};font-weight:700;">${loc[p]}</span>
+            </div>` : '').join('')}
+        </div>
+        <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:10px;color:#64748b;">TOTAL</span>
+          <span style="font-family:Space Mono,monospace;font-size:16px;font-weight:700;color:${color};">${score}</span>
+        </div>
+      </div>`;
+    
+    circle.bindTooltip(tooltipHtml, { className: 'map-tooltip', sticky: false });
+    label.bindTooltip(tooltipHtml, { className: 'map-tooltip', sticky: false });
+    
+    circle.on('click', () => selectLocation(loc));
+    label.on('click', () => selectLocation(loc));
+    
+    markers.push(circle, label);
+  });
+}
+
+function renderHeat() {
+  if (heatLayer) { heatLayer.remove(); heatLayer = null; }
+  
+  const heatPoints = LOCATIONS
+    .filter(loc => activeZones[loc.zone] && visibleAreas.has(loc.id))
+    .map(loc => {
+      const score = getScore(loc);
+      return [loc.lat, loc.lng, score / 12];
+    });
+  
+  if (heatPoints.length === 0) return;
+  
+  heatLayer = L.heatLayer(heatPoints, {
+    radius: 60, blur: 50, maxZoom: 17,
+    gradient: { 0.1:'#86efac', 0.3:'#fde047', 0.5:'#fb923c', 0.7:'#ef4444', 1.0:'#b91c1c' },
+    max: 1.0, minOpacity: 0.35
+  }).addTo(map);
+}
+
+function renderSidebar() {
+  const filtered = LOCATIONS.filter(loc => activeZones[loc.zone]);
+  const sorted = [...filtered].sort((a,b) => getScore(b) - getScore(a));
+  const list = document.getElementById('location-list');
+  const COLORS = { B:'#d4a017', Z:'#7c3aed', I:'#ea580c', F:'#2563eb', J:'#db2777' };
+  const maxScore = Math.max(...LOCATIONS.map(getScore));
+  
+  list.innerHTML = sorted.map(loc => {
+    const score = getScore(loc);
+    const color = heatColor(score);
+    const zone = loc.zone.replace('_',' ').split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+    const isVisible = visibleAreas.has(loc.id);
+    
+    return `<div class="location-card ${isVisible ? '' : 'inactive'}" id="card-${loc.id}" style="position:relative;">
+      <div style="position:absolute; top:8px; left:8px;">
+        <input type="checkbox" id="area-cb-${loc.id}" ${isVisible ? 'checked' : ''} 
+          onchange="toggleArea('${loc.id}')" 
+          style="width:14px; height:14px; cursor:pointer;">
+      </div>
+      <div style="padding-left:24px;" onclick="selectLocation_by_id('${loc.id}')">
+        <div class="location-zone">${zone}</div>
+        <div class="location-name">${loc.name}</div>
+        <div class="location-bars">
+          ${activePlatforms.blinkit ? `<div class="mini-bar">
+            <span class="mini-bar-label" style="color:#b8860b">BL</span>
+            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.B/5*100}%;background:#d4a017"></div></div>
+            <span class="mini-bar-num" style="color:#b8860b">${loc.B}</span>
+          </div>` : ''}
+          ${activePlatforms.zepto ? `<div class="mini-bar">
+            <span class="mini-bar-label" style="color:#6d28d9">ZP</span>
+            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.Z/5*100}%;background:#7c3aed"></div></div>
+            <span class="mini-bar-num" style="color:#6d28d9">${loc.Z}</span>
+          </div>` : ''}
+          ${activePlatforms.instamart ? `<div class="mini-bar">
+            <span class="mini-bar-label" style="color:#c2410c">IM</span>
+            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.I/5*100}%;background:#ea580c"></div></div>
+            <span class="mini-bar-num" style="color:#c2410c">${loc.I}</span>
+          </div>` : ''}
+          ${activePlatforms.flipkart ? `<div class="mini-bar">
+            <span class="mini-bar-label" style="color:#1d4ed8">FK</span>
+            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.F/5*100}%;background:#2563eb"></div></div>
+            <span class="mini-bar-num" style="color:#1d4ed8">${loc.F}</span>
+          </div>` : ''}
+          ${activePlatforms.jiomart ? `<div class="mini-bar">
+            <span class="mini-bar-label" style="color:#be185d">JM</span>
+            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.J/5*100}%;background:#db2777"></div></div>
+            <span class="mini-bar-num" style="color:#be185d">${loc.J}</span>
+          </div>` : ''}
+        </div>
+      </div>
+      <div class="location-total ${heatClass(score)}">${score}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateInsights() {
+  const r5 = 5, r10 = 10;
+  
+  // For each location, find how many stores (from active platforms) are within r5 and r10
+  function storesInRadius(center, r) {
+    let total = 0;
+    LOCATIONS.forEach(loc => {
+      if (dist(center, loc) <= r) total += getScore(loc);
+    });
+    return total;
+  }
+  
+  function bzInRadius(center, r) {
+    let total = 0;
+    LOCATIONS.forEach(loc => {
+      if (dist(center, loc) <= r) {
+        if (activePlatforms.blinkit) total += loc.B;
+        if (activePlatforms.zepto)   total += loc.Z;
+      }
+    });
+    return total;
+  }
+  
+  const d5 = LOCATIONS.map(l => ({ name: l.name, score: storesInRadius(l, r5) })).sort((a,b)=>b.score-a.score)[0];
+  const d10 = LOCATIONS.map(l => ({ name: l.name, score: storesInRadius(l, r10) })).sort((a,b)=>b.score-a.score)[0];
+  const bz5 = LOCATIONS.map(l => ({ name: l.name, score: bzInRadius(l, r5) })).sort((a,b)=>b.score-a.score)[0];
+  const bz10 = LOCATIONS.map(l => ({ name: l.name, score: bzInRadius(l, r10) })).sort((a,b)=>b.score-a.score)[0];
+  
+  // Gap: lowest total coverage
+  const gap = [...LOCATIONS].sort((a,b) => totalAll(a) - totalAll(b))[0];
+  
+  document.getElementById('ins-dense5').textContent = d5.name;
+  document.getElementById('ins-dense5-sub').textContent = `${d5.score} stores within 5km radius`;
+  document.getElementById('ins-dense10').textContent = d10.name;
+  document.getElementById('ins-dense10-sub').textContent = `${d10.score} stores within 10km radius`;
+  document.getElementById('ins-bz5').textContent = bz5.name;
+  document.getElementById('ins-bz5-sub').textContent = `${bz5.score} Blinkit+Zepto within 5km`;
+  document.getElementById('ins-bz10').textContent = bz10.name;
+  document.getElementById('ins-bz10-sub').textContent = `${bz10.score} Blinkit+Zepto within 10km`;
+  document.getElementById('ins-gap').textContent = gap.name;
+  document.getElementById('ins-gap-sub').textContent = `Only ${totalAll(gap)} total stores — OZI first mover advantage`;
+}
+
+function updateZoneTotals() {
+  const zones = ['hauz_khas','gk','saket','def_col'];
+  zones.forEach(z => {
+    const locs = LOCATIONS.filter(l => l.zone === z);
+    const total = locs.reduce((acc, l) => acc + getScore(l), 0);
+    const el = document.getElementById('zt-' + z);
+    if (el) el.textContent = total;
+  });
+}
+
+function updatePlatformCounts() {
+  const totals = { blinkit:0, zepto:0, instamart:0, flipkart:0, jiomart:0 };
+  LOCATIONS.forEach(l => {
+    totals.blinkit += l.B; totals.zepto += l.Z; totals.instamart += l.I;
+    totals.flipkart += l.F; totals.jiomart += l.J;
+  });
+  document.getElementById('cnt-blinkit').textContent = totals.blinkit;
+  document.getElementById('cnt-zepto').textContent = totals.zepto;
+  document.getElementById('cnt-instamart').textContent = totals.instamart;
+  document.getElementById('cnt-flipkart').textContent = totals.flipkart;
+  document.getElementById('cnt-jiomart').textContent = totals.jiomart;
+}
+
+// ============================================================
+// INTERACTIONS
+// ============================================================
+function selectLocation(loc) {
+  if (currentSelected) {
+    const old = document.getElementById('card-' + currentSelected.id);
+    if (old) old.classList.remove('selected');
+  }
+  currentSelected = loc;
+  const card = document.getElementById('card-' + loc.id);
+  if (card) {
+    card.classList.add('selected');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  
+  map.setView([loc.lat, loc.lng], 15, { animate: true });
+  
+  if (circleLayer) circleLayer.remove();
+  const R = activeRadius > 0 ? activeRadius * 1000 : 5000;
+  circleLayer = L.circle([loc.lat, loc.lng], {
+    radius: R, color: '#f0c027', weight: 1.5,
+    fillColor: '#f0c027', fillOpacity: 0.06, dashArray: '6,4'
+  }).addTo(map);
+}
+
+function selectLocation_by_id(id) {
+  const loc = LOCATIONS.find(l => l.id === id);
+  if (loc) selectLocation(loc);
+}
+
+function togglePlatform(platform) {
+  activePlatforms[platform] = !activePlatforms[platform];
+  const el = document.querySelector(`[data-platform="${platform}"]`);
+  el.classList.toggle('active', activePlatforms[platform]);
+  el.classList.toggle('inactive', !activePlatforms[platform]);
+  renderAll();
+}
+
+function toggleZoneFilter(zone) {
+  activeZones[zone] = !activeZones[zone];
+  const el = document.querySelector(`[data-zone="${zone}"]`);
+  el.classList.toggle('active', activeZones[zone]);
+  el.classList.toggle('inactive', !activeZones[zone]);
+  
+  // Update visible areas based on zone
+  LOCATIONS.forEach(loc => {
+    if (loc.zone === zone) {
+      if (activeZones[zone]) {
+        visibleAreas.add(loc.id);
+      } else {
+        visibleAreas.delete(loc.id);
+      }
+    }
+  });
+  
+  renderAll();
+}
+
+function toggleArea(areaId) {
+  if (visibleAreas.has(areaId)) {
+    visibleAreas.delete(areaId);
+  } else {
+    visibleAreas.add(areaId);
+  }
+  
+  const checkbox = document.getElementById('area-cb-' + areaId);
+  if (checkbox) checkbox.checked = visibleAreas.has(areaId);
+  
+  renderAll();
+}
+
+function searchAreas(query) {
+  query = query.toLowerCase().trim();
+  
+  if (!query) {
+    // Show all areas in active zones
+    LOCATIONS.forEach(loc => {
+      if (activeZones[loc.zone]) visibleAreas.add(loc.id);
+    });
+  } else {
+    // Filter by search
+    LOCATIONS.forEach(loc => {
+      if (loc.name.toLowerCase().includes(query)) {
+        visibleAreas.add(loc.id);
+      } else {
+        visibleAreas.delete(loc.id);
+      }
+    });
+  }
+  
+  renderAll();
+}
+
+function setRadius(r) {
+  activeRadius = r;
+  document.getElementById('btn-5').classList.toggle('active', r === 5);
+  document.getElementById('btn-10').classList.toggle('active', r === 10);
+  document.getElementById('btn-all').classList.toggle('active', r === 0);
+  
+  if (circleLayer) { circleLayer.remove(); circleLayer = null; }
+  if (currentSelected && r > 0) {
+    circleLayer = L.circle([currentSelected.lat, currentSelected.lng], {
+      radius: r * 1000, color: '#f0c027', weight: 1.5,
+      fillColor: '#f0c027', fillOpacity: 0.06, dashArray: '6,4'
+    }).addTo(map);
+  }
+  
+  if (r === 5) {
+    map.setView([28.543, 77.225], 13, { animate: true });
+  } else if (r === 10) {
+    map.setView([28.543, 77.225], 12, { animate: true });
+  }
+  
+  updateInsights();
+}
+
+function flyToZone(zone) {
+  const c = ZONE_CENTERS[zone];
+  if (c) map.setView([c.lat, c.lng], c.zoom, { animate: true });
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+window.addEventListener('DOMContentLoaded', initMap);
+</script>
+</body>
+</html>
