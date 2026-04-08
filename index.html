@@ -3,880 +3,1628 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OZI — Quick Commerce Coverage Map | South Delhi</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,500;0,700;1,300&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+<title>Ozi WH Intelligence — Full NCR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAKDOHhOorVpihPv_w6wt2rIiyzTCjqNgw&libraries=drawing,geometry"></script>
 <style>
-  :root {
-    --bg: #f5f6fa;
-    --surface: #ffffff;
-    --border: #e2e6ef;
-    --accent-blinkit: #d4920a;
-    --accent-zepto: #6d28d9;
-    --accent-instamart: #c2410c;
-    --accent-flipkart: #1d4ed8;
-    --accent-jiomart: #be185d;
-    --text: #0f172a;
-    --muted: #64748b;
-    --hot: #dc2626;
-    --warm: #d97706;
-    --cool: #16a34a;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
-  
-  /* HEADER */
-  .header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 28px; border-bottom: 1px solid var(--border);
-    background: rgba(245,246,250,0.97); position: sticky; top:0; z-index: 1000;
-    backdrop-filter: blur(20px); box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-  }
-  .logo { display: flex; align-items: center; gap: 10px; }
-  .logo-badge {
-    background: linear-gradient(135deg,#ff6b35,#e85d04);
-    color: #ffffff; font-family: 'Space Mono', monospace;
-    font-weight: 700; font-size: 18px; padding: 5px 12px;
-    border-radius: 6px; letter-spacing: 2px;
-  }
-  .logo-sub { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-  .header-title { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 1px; }
-  .header-right { display: flex; gap: 8px; align-items: center; }
-  .status-dot { width:8px; height:8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.4; } }
-  
-  /* LAYOUT */
-  .app { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 57px); }
-  
-  /* SIDEBAR */
-  .sidebar {
-    background: var(--surface); border-right: 1px solid var(--border);
-    overflow-y: auto; display: flex; flex-direction: column; gap: 0;
-    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
-  }
-  .sidebar::-webkit-scrollbar { width: 4px; }
-  .sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-  
-  .section { padding: 18px 20px; border-bottom: 1px solid var(--border); }
-  .section-title {
-    font-family: 'Space Mono', monospace; font-size: 10px;
-    letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
-    margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
-  }
-  .section-title::after { content:''; flex:1; height:1px; background: var(--border); }
-  
-  /* PLATFORM TOGGLES */
-  .platform-grid { display: flex; flex-direction: column; gap: 8px; }
-  .platform-toggle {
-    display: flex; align-items: center; gap: 12px; padding: 10px 12px;
-    border-radius: 8px; border: 1px solid var(--border); cursor: pointer;
-    transition: all 0.2s; user-select: none; position: relative; overflow: hidden;
-  }
-  .platform-toggle:hover { border-color: var(--color); }
-  .platform-toggle.active { background: rgba(0,0,0,0.03); }
-  .platform-toggle.inactive { opacity: 0.4; }
-  .platform-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .platform-name { font-weight: 500; font-size: 13px; flex: 1; }
-  .platform-count {
-    font-family: 'Space Mono', monospace; font-size: 13px;
-    color: var(--color); font-weight: 700;
-  }
-  .platform-sub { font-size: 10px; color: var(--muted); }
-  
-  /* RADIUS SELECTOR */
-  .radius-selector { display: flex; gap: 8px; }
-  .radius-btn {
-    flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--text); font-family: 'Space Mono', monospace;
-    font-size: 12px; cursor: pointer; transition: all 0.2s; text-align: center;
-  }
-  .radius-btn.active { background: #ff6b35; color: #fff; border-color: #ff6b35; }
-  
-  /* LOCATION CARDS */
-  .location-list { display: flex; flex-direction: column; gap: 6px; }
-  .location-card {
-    padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
-    cursor: pointer; transition: all 0.2s; position: relative;
-  }
-  .location-card:hover { border-color: rgba(255,107,53,0.5); background: rgba(255,107,53,0.03); }
-  .location-card.selected { border-color: #ff6b35; background: rgba(255,107,53,0.06); }
-  .location-name { font-weight: 500; font-size: 13px; margin-bottom: 5px; }
-  .location-zone { font-size: 10px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .location-bars { display: flex; flex-direction: column; gap: 3px; }
-  .mini-bar { display: flex; align-items: center; gap: 6px; }
-  .mini-bar-label { font-size: 9px; color: var(--muted); width: 16px; font-family: 'Space Mono', monospace; }
-  .mini-bar-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
-  .mini-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
-  .mini-bar-num { font-size: 9px; font-family: 'Space Mono', monospace; width: 12px; text-align: right; }
-  .location-total {
-    position: absolute; right: 10px; top: 10px;
-    font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700;
-  }
-  .total-heat-0 { color: #22c55e; }
-  .total-heat-1 { color: #84cc16; }
-  .total-heat-2 { color: #eab308; }
-  .total-heat-3 { color: var(--accent-blinkit); }
-  .total-heat-4 { color: #f97316; }
-  .total-heat-5 { color: var(--hot); }
+:root{
+  --bg:#f7f8fa;--bg2:#fff;--bg3:#f0f2f6;--bg4:#e8ebf2;
+  --border:#0000000f;--border2:#00000018;
+  --text:#0f1117;--text2:#4a4f62;--text3:#9098b0;
+  --accent:#5c35e8;--accent2:#7b5cff;--accent3:#e83560;
+  --font:'Syne',sans-serif;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
+#app{display:flex;height:100vh;width:100vw}
+#sidebar{width:380px;min-width:380px;height:100vh;overflow-y:auto;background:#fff;border-right:1px solid #e0e4ec;display:flex;flex-direction:column;z-index:10;box-shadow:2px 0 12px rgba(0,0,0,0.06)}
+#sidebar::-webkit-scrollbar{width:3px}
+#sidebar::-webkit-scrollbar-thumb{background:#d8dce8;border-radius:2px}
+#map-wrap{flex:1;position:relative}
+#map{width:100%;height:100%}
+.leaflet-container{background:#e8ecf0!important}
+.leaflet-tile{filter:brightness(1.02) saturate(0.85)}
 
-  /* MAP */
-  #map { height: 100%; width: 100%; background: #eef0f5; }
-  .leaflet-control-zoom { border: 1px solid var(--border) !important; }
-  .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; border: none !important; }
+/* HEADER */
+#header{padding:16px 20px 0;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.logo-dot{width:28px;height:28px;background:#5c35e8;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff}
+.logo-text{font-size:13px;font-weight:700;letter-spacing:0.08em;color:#333;text-transform:uppercase}
+.logo-sub{font-size:10px;color:#bbb;letter-spacing:0.12em;text-transform:uppercase;margin-top:1px}
 
-  /* INSIGHTS PANEL */
-  .insights { padding: 16px 20px; }
-  .insight-cards { display: flex; flex-direction: column; gap: 8px; }
-  .insight-card {
-    padding: 10px 12px; border-radius: 8px;
-    border-left: 3px solid; background: rgba(0,0,0,0.025);
-  }
-  .insight-card.winner { border-color: var(--hot); }
-  .insight-card.bz { border-color: var(--accent-zepto); }
-  .insight-card.opportunity { border-color: #22c55e; }
-  .insight-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
-  .insight-value { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; }
-  .insight-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  
-  /* TOOLTIP */
-  .map-tooltip {
-    background: rgba(255,255,255,0.97) !important; border: 1px solid var(--border) !important;
-    border-radius: 8px !important; padding: 10px 14px !important; color: var(--text) !important;
-    font-family: 'DM Sans', sans-serif !important; min-width: 180px;
-    backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important;
-  }
-  
-  /* LEGEND */
-  .map-legend {
-    position: absolute; bottom: 20px; right: 20px; z-index: 999;
-    background: rgba(255,255,255,0.95); border: 1px solid var(--border);
-    border-radius: 10px; padding: 12px 14px; backdrop-filter: blur(10px);
-    display: flex; flex-direction: column; gap: 6px; min-width: 160px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  }
-  .legend-title { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
-  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; }
-  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  
-  /* ZONE SUMMARY */
-  .zone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .zone-card {
-    padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
-    cursor: pointer; transition: all 0.2s;
-  }
-  .zone-card:hover { background: rgba(0,0,0,0.03); }
-  .zone-card-name { font-size: 10px; font-weight: 500; color: var(--muted); margin-bottom: 3px; }
-  .zone-card-total { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; }
-  .zone-card-sub { font-size: 9px; color: var(--muted); }
+/* TABS */
+.tabs{display:flex;gap:2px;background:#f0f2f6;border-radius:8px;padding:3px;margin-bottom:12px;flex-wrap:wrap}
+.tab{flex:1;padding:6px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;border-radius:6px;color:#666;transition:all 0.2s;white-space:nowrap}
+.tab.on{background:#5c35e8;color:#fff;box-shadow:0 1px 6px rgba(92,53,232,0.3)}
 
-  /* scrollbar for radius toggle area */
-  .view-mode { display: flex; gap: 8px; margin-bottom: 0; }
-  .view-btn {
-    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); font-size: 11px;
-    cursor: pointer; transition: all 0.2s; font-family: 'Space Mono', monospace;
-  }
-  .view-btn.active { background: rgba(255,107,53,0.12); color: #e85d04; border-color: #ff6b35; }
+/* STATS */
+.sec-label{font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#999;margin-bottom:8px;padding:0 20px}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 20px;margin-bottom:12px}
+.stat{background:#f7f8fa;border:1px solid #e0e4ec;border-radius:8px;padding:8px 10px}
+.stat-val{font-size:16px;font-weight:800;color:#5c35e8;font-family:var(--mono);line-height:1}
+.stat-lbl{font-size:8px;color:#999;margin-top:2px;letter-spacing:0.05em;text-transform:uppercase}
+
+/* FILTER CHIPS */
+.filter-row{display:flex;flex-wrap:wrap;gap:4px;padding:0 20px;margin-bottom:8px}
+.chip{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #d0d5e0;color:#666;background:#fff;transition:all 0.15s;white-space:nowrap;font-family:var(--font)}
+.chip:hover{border-color:#5c35e8;color:#5c35e8}
+.chip.on{background:#5c35e8;color:#fff;border-color:#5c35e8}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:6px;padding:0 20px;margin-bottom:8px;align-items:center}
+.filter-label{font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#999;white-space:nowrap}
+.fselect{background:#f7f8fa;border:1px solid #d8dce8;border-radius:6px;padding:5px 8px;color:#444;font-family:var(--font);font-size:11px;outline:none;cursor:pointer;flex:1}
+
+/* SORT */
+.sort-row{display:flex;gap:4px;padding:0 20px;margin-bottom:8px;align-items:center;flex-wrap:wrap}
+.sort-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid #d8dce8;color:#888;background:#fff;font-family:var(--font)}
+.sort-btn.on{background:#f0edff;color:#5c35e8;border-color:#5c35e8}
+
+/* RESULT COUNT */
+.result-count{font-size:10px;color:#aaa;padding:0 20px;margin-bottom:6px}
+.result-count b{color:#555}
+
+/* ZONES */
+.zones{padding:0 20px;margin-bottom:12px;display:flex;flex-direction:column;gap:6px}
+.zone-card{background:#fff;border:1px solid #e8ecf2;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden}
+.zone-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.zone-card.active,.zone-card:hover{border-color:#5c35e8;background:#f9f8ff}
+.zone-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
+.zone-name{font-size:13px;font-weight:700;color:#111}
+.zone-score-badge{font-size:11px;font-weight:700;font-family:var(--mono);padding:2px 8px;border-radius:4px}
+.zone-pins-label{font-size:10px;color:#888;margin-bottom:5px}
+.zone-bar-wrap{height:4px;background:#edf0f5;border-radius:2px;margin-bottom:6px}
+.zone-bar{height:4px;border-radius:2px}
+.zone-stats{display:flex;gap:10px}
+.zone-stat{font-size:10px;color:#888}
+.zone-stat span{color:#222;font-weight:600}
+.zone-pin-list{margin-top:8px;display:none;flex-direction:column;gap:2px}
+.zone-pin-list.open{display:flex}
+.zone-pin-row{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-radius:4px;background:#f7f8fa;cursor:pointer;font-size:10px}
+.zone-pin-row:hover{background:#ede9ff}
+.zone-pin-row .zpn{color:#333;font-family:var(--mono)}
+.zone-pin-row .zpa{color:#aaa;font-size:9px}
+
+/* FILTER SUMMARY */
+.filter-summary{margin:0 20px 8px;padding:5px 10px;border-radius:5px;background:#f0edff;border:1px solid #d4c8ff;font-size:10px;color:#5c35e8;display:none}
+.filter-summary.visible{display:block}
+
+/* PIN TABLE */
+#pin-panel{padding:0 20px;margin-bottom:12px}
+.pin-search{width:100%;background:#f7f8fa;border:1px solid #d8dce8;border-radius:7px;padding:7px 12px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;margin-bottom:8px}
+.pin-search:focus{border-color:#5c35e8}
+.pin-search::placeholder{color:#bbb}
+.pin-table{width:100%;border-collapse:collapse;font-size:11px}
+.pin-table th{text-align:left;padding:5px 6px;color:#999;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #e8ecf2;background:#f7f8fa}
+.pin-table td{padding:5px 6px;border-bottom:1px solid #f0f2f6;color:#555;cursor:pointer}
+.pin-table tr:hover td{background:#f5f3ff;color:#111}
+.pin-table .pc{font-family:var(--mono);color:#111;font-size:11px}
+.score-pill{display:inline-block;padding:1px 6px;border-radius:3px;font-family:var(--mono);font-size:10px;font-weight:700}
+.wh-badge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;letter-spacing:0.04em}
+
+/* WH SITES */
+#wh-panel{padding:0 20px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+.wh-card{background:#fff;border:1px solid #e8ecf2;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all 0.2s}
+.wh-card:hover,.wh-card.active{border-color:#5c35e8;background:#f9f8ff}
+.wh-existing{border-color:#ff6b35;background:#fff8f5}
+.wh-rank{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.wh-num{width:22px;height:22px;border-radius:50%;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wh-name{font-size:12px;font-weight:700;color:#111;flex:1}
+.wh-score{font-size:12px;font-family:var(--mono);color:#5c35e8;margin-left:auto}
+.wh-loc{font-size:10px;color:#aaa;font-family:var(--mono);margin-bottom:6px}
+.wh-reason{font-size:11px;color:#555;line-height:1.5;margin-bottom:8px}
+.wh-overlap-note{padding:4px 8px;border-radius:4px;font-size:10px;margin-bottom:6px}
+.wh-zones-covered{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.wh-zone-tag{font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600}
+.wh-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-top:8px;border-top:1px solid #f0f2f6}
+.wh-metric .v{font-size:13px;font-weight:700;font-family:var(--mono);color:#111}
+.wh-metric .l{font-size:8px;color:#aaa;text-transform:uppercase;letter-spacing:0.06em;margin-top:1px}
+
+/* DISTANCE */
+#dist-panel{padding:0 20px;margin-bottom:12px}
+.dist-inputs{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.dist-inputs input{background:#f7f8fa;border:1px solid #d8dce8;border-radius:7px;padding:7px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none}
+.dist-inputs input:focus{border-color:#5c35e8}
+.dist-inputs input::placeholder{color:#bbb}
+.dist-btn{width:100%;padding:9px;background:#5c35e8;color:#fff;border:none;border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px}
+.dist-btn:hover{background:#4a28d0}
+#dist-result{font-size:12px;color:#555;min-height:50px;font-family:var(--mono);background:#f7f8fa;padding:10px;border-radius:8px;border:1px solid #e8ecf2}
+#dist-result .big{font-size:22px;font-weight:700;color:#5c35e8;display:block;margin-bottom:4px}
+
+/* STUDIO */
+.studio-section{padding:0 20px;margin-bottom:12px}
+.draw-hint{font-size:10px;color:#888;min-height:14px;font-family:var(--mono);margin-top:4px;padding:0 20px}
+.custom-zone-card{background:#fff;border:1px solid #e8ecf2;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-radius:8px;padding:10px 12px}
+.cz-head{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.cz-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cz-name{font-size:12px;font-weight:700;color:#111;flex:1}
+.cz-score{font-size:10px;font-family:var(--mono);color:#5c35e8}
+.cz-pins{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
+.cz-pin-tag{font-size:9px;padding:2px 6px;border-radius:3px;font-family:var(--mono);cursor:pointer}
+.cz-btn{font-size:10px;padding:3px 10px;border-radius:4px;border:1px solid #d8dce8;background:#fff;color:#555;cursor:pointer;font-family:var(--font)}
+.cz-btn:hover{border-color:#5c35e8;color:#5c35e8}
+.active-pin-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:4px;font-family:var(--mono);cursor:pointer}
+.custom-wh-card{background:#fff;border:1px solid #c4b5fd;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-radius:8px;padding:10px 12px}
+
+/* CHAT */
+.chat-msg{padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.6;max-width:95%;word-wrap:break-word}
+.ai-msg{background:#f7f8fa;border:1px solid #e8ecf2;color:#222;align-self:flex-start;border-radius:4px 12px 12px 12px}
+.user-msg{background:#5c35e8;color:#fff;align-self:flex-end;border-radius:12px 12px 4px 12px;margin-left:auto}
+.ai-msg b{color:#5c35e8;font-weight:700}
+.ai-msg .pin-ref{display:inline-block;background:#5c35e8;color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;font-family:var(--mono);cursor:pointer;margin:0 1px}
+.typing-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#ccc;animation:typingPulse 1.2s ease-in-out infinite}
+.typing-dot:nth-child(2){animation-delay:0.2s}
+.typing-dot:nth-child(3){animation-delay:0.4s}
+@keyframes typingPulse{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-4px);opacity:1}}
+.sugg-btn{font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #d8dce8;background:#fff;color:#666;cursor:pointer;font-family:var(--font);transition:all 0.15s;white-space:nowrap}
+.sugg-btn:hover{border-color:#5c35e8;color:#5c35e8;background:#f0edff}
+#chat-messages::-webkit-scrollbar{width:3px}
+#chat-messages::-webkit-scrollbar-thumb{background:#d8dce8;border-radius:2px}
+
+/* MAP CONTROLS */
+.map-controls{position:absolute;top:12px;right:12px;z-index:500;display:flex;flex-direction:column;gap:5px}
+.map-btn{background:#fff;border:1px solid #d0d5e0;border-radius:7px;padding:6px 12px;font-size:11px;font-family:var(--font);font-weight:600;color:#555;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;transition:all 0.15s;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.map-btn:hover,.map-btn.on{background:#f0edff;color:#5c35e8;border-color:#5c35e8}
+
+/* MAP LEGEND */
+.map-legend{position:absolute;bottom:24px;right:12px;z-index:500;background:#fff;border:1px solid #e0e4ec;border-radius:10px;padding:12px 14px;font-size:11px;color:#444;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
+.map-legend h4{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888;margin-bottom:8px}
+.leg-row{display:flex;align-items:center;gap:7px;margin:4px 0;font-size:10px}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* DRAW */
+.draw-dist-tip{background:#fff!important;border:1.5px solid #5c35e8!important;border-radius:6px!important;padding:4px 10px!important;font-size:11px!important;font-family:var(--mono)!important;color:#111!important;box-shadow:0 2px 8px #00000015!important;white-space:nowrap}
+.leaflet-draw-section{display:none}
+.leaflet-popup-content-wrapper{border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.12);border:1px solid #e8eaf0}
+.leaflet-popup-tip{background:#fff}
+.scroll-inner{flex:1;overflow-y:auto;padding-bottom:24px}
+.scroll-inner::-webkit-scrollbar{width:2px}
+.scroll-inner::-webkit-scrollbar-thumb{background:var(--border2)}
 </style>
 </head>
 <body>
+<div id="app">
+<div id="sidebar">
+  <div id="header">
+    <div class="logo">
+      <div class="logo-dot">O</div>
+      <div>
+        <div class="logo-text">Ozi WH Intelligence</div>
+        <div class="logo-sub">Full NCR · v2.0</div>
+      </div>
+    </div>
+    <!-- COVERAGE BAR -->
+    <div style="background:#f0f2f6;border-radius:8px;padding:10px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:11px;font-weight:700;color:#555">Network Coverage</span>
+        <span style="font-size:18px;font-weight:800;color:#5c35e8;font-family:var(--mono)" id="cov-pct">—%</span>
+      </div>
+      <div style="height:7px;background:#d8dce8;border-radius:4px;margin-bottom:6px">
+        <div id="cov-bar" style="height:7px;border-radius:4px;background:#5c35e8;width:0%;transition:width 0.5s ease"></div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div style="font-size:10px;color:#999">Pins: <b id="cov-pins" style="color:#333">—</b></div>
+        <div style="font-size:10px;color:#999">Score: <b id="cov-score" style="color:#333">—</b></div>
+        <div style="font-size:10px;color:#999">WHs: <b id="cov-whs" style="color:#333">—</b></div>
+      </div>
+    </div>
 
-<div class="header">
-  <div class="logo">
-    <span class="logo-badge">OZI</span>
-    <div>
-      <div style="font-weight:600; font-size:14px;">Quick Commerce Coverage Intelligence</div>
-      <div class="logo-sub">South Delhi — Competitor Dark Store Analysis</div>
+    <div class="tabs">
+      <div class="tab on" onclick="setTab('zones')" id="t-zones">Zones</div>
+      <div class="tab" onclick="setTab('pincodes')" id="t-pincodes">Pins</div>
+      <div class="tab" onclick="setTab('wh')" id="t-wh">WH Sites</div>
+      <div class="tab" onclick="setTab('dist')" id="t-dist">Distance</div>
+      <div class="tab" onclick="setTab('studio')" id="t-studio">✦ Studio</div>
     </div>
   </div>
-  <div class="header-title">20 ZONES · 5 PLATFORMS · FEB 2026</div>
-  <div class="header-right">
-    <span style="font-size:11px; color:var(--muted);">LIVE</span>
-    <div class="status-dot"></div>
+
+  <div class="scroll-inner" id="content">
+
+    <!-- ZONES TAB -->
+    <div id="tab-zones">
+      <div class="sec-label">NCR Overview</div>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-val">80</div><div class="stat-lbl">Pins</div></div>
+        <div class="stat"><div class="stat-val">6</div><div class="stat-lbl">Zones</div></div>
+        <div class="stat"><div class="stat-val" id="ov-top">—</div><div class="stat-lbl">Score 40+</div></div>
+        <div class="stat"><div class="stat-val" id="ov-cov">—</div><div class="stat-lbl">Covered</div></div>
+      </div>
+
+      <div class="sec-label">Filter by Score</div>
+      <div class="filter-row">
+        <button class="chip on" onclick="zfScore('all',this)">All</button>
+        <button class="chip" onclick="zfScore('critical',this)" style="--c:#e03030">🔴 70+</button>
+        <button class="chip" onclick="zfScore('high',this)" style="--c:#e07020">🟠 40–69</button>
+        <button class="chip" onclick="zfScore('medium',this)" style="--c:#2a9d3a">🟡 20–39</button>
+        <button class="chip" onclick="zfScore('low',this)">⚫ &lt;20</button>
+      </div>
+      <div class="sec-label">Filter by Coverage</div>
+      <div class="filter-row">
+        <button class="chip on" onclick="zfCov('all',this)">All</button>
+        <button class="chip" onclick="zfCov('gap',this)">❌ Uncovered</button>
+        <button class="chip" onclick="zfCov('s52',this)">WH Sec52</button>
+        <button class="chip" onclick="zfCov('s84',this)">WH Sec84</button>
+        <button class="chip" onclick="zfCov('bisrakh',this)">WH Bisrakh</button>
+      </div>
+      <div class="filter-summary" id="zf-summary"></div>
+      <div class="result-count" id="zf-count"></div>
+      <div class="sec-label">Zones — click to expand</div>
+      <div class="zones" id="zone-cards"></div>
+    </div>
+
+    <!-- PINCODES TAB -->
+    <div id="tab-pincodes" style="display:none">
+      <div id="pin-panel">
+        <div class="sec-label" style="padding:0;margin-bottom:8px">All 80 Pincodes</div>
+        <input class="pin-search" type="text" placeholder="Search pincode or area..." id="pin-search" oninput="filterPins()">
+        <div class="filter-bar">
+          <span class="filter-label">Zone</span>
+          <select class="fselect" id="pf-zone" onchange="filterPins()">
+            <option value="all">All Zones</option>
+            <option value="Delhi">Delhi</option>
+            <option value="Gurgaon">Gurgaon</option>
+            <option value="Noida">Noida</option>
+            <option value="Ghaziabad/GN">Ghaziabad / GN</option>
+            <option value="Faridabad">Faridabad</option>
+            <option value="Greater Noida">Greater Noida</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <button class="chip on" onclick="pfScore('all',this)">All</button>
+          <button class="chip" onclick="pfScore('critical',this)">70+</button>
+          <button class="chip" onclick="pfScore('high',this)">40–69</button>
+          <button class="chip" onclick="pfScore('medium',this)">20–39</button>
+          <button class="chip" onclick="pfScore('low',this)">&lt;20</button>
+        </div>
+        <div class="filter-row">
+          <button class="chip on" onclick="pfCov('all',this)">All Coverage</button>
+          <button class="chip" onclick="pfCov('gap',this)">❌ Uncovered</button>
+          <button class="chip" onclick="pfCov('s52',this)">Sec52</button>
+          <button class="chip" onclick="pfCov('s84',this)">Sec84</button>
+          <button class="chip" onclick="pfCov('bisrakh',this)">Bisrakh</button>
+        </div>
+        <div class="sort-row">
+          <span class="filter-label" style="padding:0;margin-right:4px">Sort</span>
+          <button class="sort-btn on" onclick="pinSort('score',this)">Score↓</button>
+          <button class="sort-btn" onclick="pinSort('hh',this)">Income</button>
+          <button class="sort-btn" onclick="pinSort('ped',this)">Pediatrics</button>
+          <button class="sort-btn" onclick="pinSort('pc',this)">Pincode</button>
+        </div>
+        <div class="result-count" id="pin-count"></div>
+        <table class="pin-table">
+          <thead><tr><th>#</th><th>Pincode</th><th>Area</th><th>Score</th><th>HH</th><th>Ped</th><th>Cov</th></tr></thead>
+          <tbody id="pin-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- WH SITES TAB -->
+    <div id="tab-wh" style="display:none">
+
+      <!-- SELECTED WH DETAIL PANEL -->
+      <div id="detail-panel" style="display:none;margin:0 20px 10px;background:#f0edff;border:1.5px solid #5c35e8;border-radius:10px;padding:12px 14px">
+        <div id="detail-title" style="font-size:12px;font-weight:800;color:#5c35e8;margin-bottom:8px"></div>
+        <div id="detail-pins" style="display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto"></div>
+        <button onclick="hideDetailPanel()" style="margin-top:8px;font-size:10px;padding:3px 10px;border-radius:4px;border:1px solid #d8dce8;background:#fff;color:#888;cursor:pointer;font-family:var(--font)">Close ✕</button>
+      </div>
+
+      <div class="sec-label">7-WH Network Plan (40min TAT = 13km radius)</div>
+      <div style="padding:0 20px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px" id="existing-wh-panel"></div>
+
+      <div class="sec-label">WHs ranked by greedy optimization — click to activate</div>
+      <div style="padding:0 20px;margin-bottom:8px;font-size:10px;color:#aaa">Click a candidate → activates WH, shows 13km (40min) radius + distance lines to all covered pincodes on map</div>
+      <div class="sort-row">
+        <span class="filter-label" style="padding:0;margin-right:4px">Sort</span>
+        <button class="sort-btn on" onclick="whSortCand('score',this)">Score↓</button>
+        <button class="sort-btn" onclick="whSortCand('net',this)">Net New↓</button>
+        <button class="sort-btn" onclick="whSortCand('gain',this)">Gain↓</button>
+      </div>
+      <div class="result-count" id="wh-count"></div>
+      <div id="wh-panel" style="padding:0 20px"></div>
+
+      <!-- MOTHER WH -->
+      <div style="padding:0 20px;margin-top:8px">
+        <div class="sec-label" style="padding:0;margin-bottom:8px">Mother WH — Replenishment Hub</div>
+        <div style="background:#fffbf0;border:1.5px solid #f5c842;border-radius:10px;padding:12px 14px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:18px">🏭</span>
+            <div>
+              <div style="font-size:12px;font-weight:800;color:#92400e">Mother WH — Okhla/NH-44 (Center of 7-WH network)</div>
+              <div style="font-size:10px;color:#aaa;font-family:var(--mono)">28.530, 77.279</div>
+            </div>
+            <button onclick="toggleMotherWH()" id="mother-btn" style="margin-left:auto;font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid #f5c842;background:#fff;color:#92400e;cursor:pointer;font-family:var(--font);font-weight:700">Show on map</button>
+          </div>
+          <div style="font-size:10px;color:#b45309;line-height:1.6;margin-bottom:8px">Center of gravity of entire WH network. Trucks reach any satellite WH in 30-45 min via NH-44.</div>
+          <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:4px">Distance to each active WH:</div>
+          <div id="mother-dists" style="display:flex;flex-direction:column;gap:2px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISTANCE TAB -->
+    <div id="tab-dist" style="display:none">
+      <div id="dist-panel">
+        <div class="sec-label" style="padding:0;margin-bottom:8px">Distance Calculator</div>
+        <div class="dist-inputs">
+          <input type="text" id="d-from" placeholder="From: pincode or lat,lng (e.g. 201304)">
+          <input type="text" id="d-to" placeholder="To: pincode, lat,lng or 'sec52' / 'sec84' / 'bisrakh'">
+        </div>
+        <button class="dist-btn" onclick="calcDist()">Calculate Distance</button>
+        <div id="dist-result">Enter two points to calculate distance.</div>
+
+        <div style="margin-top:14px">
+          <div class="sec-label" style="padding:0;margin-bottom:6px">Pincodes — Distance from WHs</div>
+          <div class="filter-row" style="padding:0;margin-bottom:6px">
+            <button class="chip on" onclick="dtCov('all',this)">All</button>
+            <button class="chip" onclick="dtCov('covered',this)">✓ Covered</button>
+            <button class="chip" onclick="dtCov('gap',this)">❌ Gap</button>
+            <button class="chip" onclick="dtCov('near',this)">Near 10-20km</button>
+          </div>
+          <div class="sort-row" style="padding:0;margin-bottom:6px">
+            <span class="filter-label" style="padding:0;margin-right:4px">Sort by</span>
+            <button class="sort-btn on" onclick="dtSort('s52',this)">Sec52</button>
+            <button class="sort-btn" onclick="dtSort('s84',this)">Sec84</button>
+            <button class="sort-btn" onclick="dtSort('bisrakh',this)">Bisrakh</button>
+            <button class="sort-btn" onclick="dtSort('score',this)">Score</button>
+          </div>
+          <div class="result-count" id="dt-count"></div>
+          <table class="pin-table">
+            <thead><tr><th>PC</th><th>Area</th><th>Sc</th><th>S52</th><th>S84</th><th>Bis</th></tr></thead>
+            <tbody id="dist-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDIO TAB -->
+    <div id="tab-studio" style="display:none;padding-bottom:20px">
+
+      <!-- CLAUDE AI -->
+      <div style="padding:0 20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:22px;height:22px;border-radius:50%;background:#5c35e8;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;flex-shrink:0">AI</div>
+          <div class="sec-label" style="padding:0;margin:0">Claude AI Assistant</div>
+          <button onclick="clearChat()" style="margin-left:auto;font-size:9px;padding:2px 8px;border-radius:4px;border:1px solid #d8dce8;background:transparent;color:#aaa;cursor:pointer;font-family:var(--font)">Clear</button>
+        </div>
+        <div id="chat-messages" style="height:260px;overflow-y:auto;background:#f7f8fa;border:1px solid #e8ecf2;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+          <div class="chat-msg ai-msg">
+            <div style="font-size:11px;line-height:1.6;color:#555">Hi! Full NCR data loaded — 80 pincodes across Delhi, Noida, Gurgaon, Faridabad, Ghaziabad, Greater Noida.<br><br>New scoring: <b>Income 40% · Pediatrics 25% · Schools 20% · Kids 10%</b><br>3 existing WHs: <b>Sec52 Gurgaon · Sec84 Gurgaon · Bisrakh Noida</b><br><br>Ask me anything!</div>
+          </div>
+        </div>
+        <div id="suggested-prompts" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+          <button class="sugg-btn" onclick="sendSugg(this)">Best new WH location?</button>
+          <button class="sugg-btn" onclick="sendSugg(this)">What's uncovered in Delhi?</button>
+          <button class="sugg-btn" onclick="sendSugg(this)">Faridabad opportunity?</button>
+          <button class="sugg-btn" onclick="sendSugg(this)">Top 5 pincodes by income</button>
+        </div>
+        <div style="display:flex;gap:6px">
+          <input class="pin-search" id="chat-input" style="flex:1;margin:0" placeholder="Ask about NCR coverage, zones, WH locations...">
+          <button class="dist-btn" id="chat-send-btn" style="width:auto;padding:8px 14px;margin:0;font-size:12px;flex-shrink:0" onclick="sendChat()">Send</button>
+        </div>
+        <div id="chat-status" style="font-size:10px;color:#aaa;margin-top:4px;min-height:14px;font-family:var(--mono)"></div>
+      </div>
+
+      <!-- DRAW MODE -->
+      <div class="sec-label">Map Draw Mode</div>
+      <div class="filter-row">
+        <button class="chip on" id="mode-zone" onclick="setStudioMode('zone',this)">📍 Zone Pin</button>
+        <button class="chip" id="mode-wh" onclick="setStudioMode('wh',this)">🏭 WH Point</button>
+        <button class="chip" id="mode-line" onclick="setStudioMode('line',this)">📏 Draw Line</button>
+        <button class="chip" id="mode-poly" onclick="setStudioMode('poly',this)">⬡ Draw Zone</button>
+        <button class="chip" id="mode-off" onclick="setStudioMode('off',this)">✋ Pan</button>
+      </div>
+      <div class="draw-hint" id="draw-hint"></div>
+
+      <!-- ZONE BUILDER -->
+      <div class="studio-section" style="margin-top:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="sec-label" style="padding:0;margin:0">Build Zone</div>
+          <button class="cz-btn" onclick="clearDrawings()" style="font-size:9px">🗑 Clear Drawings</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <input class="pin-search" id="zone-name-input" style="flex:1;margin:0" placeholder="Zone name">
+          <input type="color" id="zone-color-pick" value="#5c35e8" style="width:36px;height:36px;border:1px solid #d8dce8;border-radius:6px;cursor:pointer;padding:2px">
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <input class="pin-search" id="zone-pc-input" style="flex:1;margin:0" placeholder="Type pincode + Enter">
+          <button class="dist-btn" style="width:auto;padding:7px 12px;margin:0;font-size:11px" onclick="addPincodeToZone()">Add</button>
+        </div>
+        <div id="zone-pins-preview" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;padding:6px;background:#f7f8fa;border-radius:6px;border:1px solid #e8ecf2;min-height:32px">
+          <span style="font-size:10px;color:#bbb" id="zone-pins-empty">No pins — click map or type pincode</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="dist-btn" style="flex:1;margin:0;font-size:11px" onclick="saveCustomZone()">💾 Save Zone</button>
+          <button class="sort-btn" onclick="clearActivePins()" style="padding:7px 12px;font-size:11px">Clear</button>
+        </div>
+      </div>
+
+      <!-- SAVED ZONES -->
+      <div class="studio-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="sec-label" style="padding:0;margin:0">Saved Zones (<span id="cz-count">0</span>)</div>
+          <button class="cz-btn" onclick="clearAllCustomZones()" style="font-size:9px">Clear All</button>
+        </div>
+        <div id="custom-zones-list" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+
+      <!-- CUSTOM WH POINTS -->
+      <div class="studio-section">
+        <div class="sec-label" style="padding:0;margin-bottom:4px">Custom WH Points</div>
+        <div style="font-size:10px;color:#aaa;margin-bottom:8px">🏭 mode → click map → distances auto-draw to zone pins</div>
+        <div id="custom-wh-list" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<div class="app">
-  <div class="sidebar">
-
-    <!-- PLATFORM FILTERS -->
-    <div class="section">
-      <div class="section-title">Platforms</div>
-      <div class="platform-grid">
-        <div class="platform-toggle active" style="--color:#b8860b" data-platform="blinkit" onclick="togglePlatform('blinkit')">
-          <div class="platform-dot" style="background:#d4a017"></div>
-          <div>
-            <div class="platform-name">Blinkit</div>
-            <div class="platform-sub">Zomato / Eternal</div>
-          </div>
-          <div class="platform-count" style="color:#b8860b" id="cnt-blinkit">17</div>
-        </div>
-        <div class="platform-toggle active" style="--color:#6d28d9" data-platform="zepto" onclick="togglePlatform('zepto')">
-          <div class="platform-dot" style="background:#7c3aed"></div>
-          <div>
-            <div class="platform-name">Zepto</div>
-            <div class="platform-sub">India's fastest</div>
-          </div>
-          <div class="platform-count" style="color:#6d28d9" id="cnt-zepto">14</div>
-        </div>
-        <div class="platform-toggle active" style="--color:#ea580c" data-platform="instamart" onclick="togglePlatform('instamart')">
-          <div class="platform-dot" style="background:#ea580c"></div>
-          <div>
-            <div class="platform-name">Instamart</div>
-            <div class="platform-sub">Swiggy</div>
-          </div>
-          <div class="platform-count" style="color:#ea580c" id="cnt-instamart">10</div>
-        </div>
-        <div class="platform-toggle active" style="--color:#1d4ed8" data-platform="flipkart" onclick="togglePlatform('flipkart')">
-          <div class="platform-dot" style="background:#2563eb"></div>
-          <div>
-            <div class="platform-name">Flipkart Minutes</div>
-            <div class="platform-sub">Walmart</div>
-          </div>
-          <div class="platform-count" style="color:#1d4ed8" id="cnt-flipkart">6</div>
-        </div>
-        <div class="platform-toggle active" style="--color:#be185d" data-platform="jiomart" onclick="togglePlatform('jiomart')">
-          <div class="platform-dot" style="background:#db2777"></div>
-          <div>
-            <div class="platform-name">JioMart Express</div>
-            <div class="platform-sub">Reliance</div>
-          </div>
-          <div class="platform-count" style="color:#be185d" id="cnt-jiomart">5</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ZONE FILTER -->
-    <div class="section">
-      <div class="section-title">Zone Filter</div>
-      <div class="platform-grid">
-        <div class="platform-toggle active" style="--color:#ff6b35" data-zone="hauz_khas" onclick="toggleZoneFilter('hauz_khas')">
-          <div class="platform-dot" style="background:#ff6b35"></div>
-          <div>
-            <div class="platform-name">Hauz Khas Belt</div>
-            <div class="platform-sub">5 areas</div>
-          </div>
-          <div class="platform-count" style="color:#ff6b35" id="zone-cnt-hauz_khas">5</div>
-        </div>
-        <div class="platform-toggle active" style="--color:#8b5cf6" data-zone="gk" onclick="toggleZoneFilter('gk')">
-          <div class="platform-dot" style="background:#8b5cf6"></div>
-          <div>
-            <div class="platform-name">GK Belt</div>
-            <div class="platform-sub">7 areas</div>
-          </div>
-          <div class="platform-count" style="color:#8b5cf6" id="zone-cnt-gk">7</div>
-        </div>
-        <div class="platform-toggle active" style="--color:#f97316" data-zone="saket" onclick="toggleZoneFilter('saket')">
-          <div class="platform-dot" style="background:#f97316"></div>
-          <div>
-            <div class="platform-name">Saket Belt</div>
-            <div class="platform-sub">5 areas</div>
-          </div>
-          <div class="platform-count" style="color:#f97316" id="zone-cnt-saket">5</div>
-        </div>
-        <div class="platform-toggle active" style="--color:#3b82f6" data-zone="def_col" onclick="toggleZoneFilter('def_col')">
-          <div class="platform-dot" style="background:#3b82f6"></div>
-          <div>
-            <div class="platform-name">Defence Colony Belt</div>
-            <div class="platform-sub">5 areas</div>
-          </div>
-          <div class="platform-count" style="color:#3b82f6" id="zone-cnt-def_col">5</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- AREA SEARCH -->
-    <div class="section">
-      <div class="section-title">Search Areas</div>
-      <input type="text" id="area-search" placeholder="Search neighbourhood..." style="
-        width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--border);
-        background:var(--bg); color:var(--text); font-size:13px; font-family:'DM Sans',sans-serif;
-      " oninput="searchAreas(this.value)">
-    </div>
-
-    <!-- RADIUS VIEW -->
-    <div class="section">
-      <div class="section-title">Analysis Radius</div>
-      <div class="radius-selector">
-        <button class="radius-btn active" onclick="setRadius(5)" id="btn-5">5 km</button>
-        <button class="radius-btn" onclick="setRadius(10)" id="btn-10">10 km</button>
-        <button class="radius-btn" onclick="setRadius(0)" id="btn-all">All</button>
-      </div>
-    </div>
-
-    <!-- ZONE SUMMARY -->
-    <div class="section">
-      <div class="section-title">Zone Summary</div>
-      <div class="zone-grid">
-        <div class="zone-card" onclick="flyToZone('hauz_khas')">
-          <div class="zone-card-name">Hauz Khas Belt</div>
-          <div class="zone-card-total" id="zt-hauz_khas" style="color:#f0c027">—</div>
-          <div class="zone-card-sub">5 neighbourhoods</div>
-        </div>
-        <div class="zone-card" onclick="flyToZone('gk')">
-          <div class="zone-card-name">GK Belt</div>
-          <div class="zone-card-total" id="zt-gk" style="color:#8b5cf6">—</div>
-          <div class="zone-card-sub">6 neighbourhoods</div>
-        </div>
-        <div class="zone-card" onclick="flyToZone('saket')">
-          <div class="zone-card-name">Saket Belt</div>
-          <div class="zone-card-total" id="zt-saket" style="color:#f97316">—</div>
-          <div class="zone-card-sub">5 neighbourhoods</div>
-        </div>
-        <div class="zone-card" onclick="flyToZone('def_col')">
-          <div class="zone-card-name">Def Col Belt</div>
-          <div class="zone-card-total" id="zt-def_col" style="color:#3b82f6">—</div>
-          <div class="zone-card-sub">5 neighbourhoods</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- KEY INSIGHTS -->
-    <div class="section">
-      <div class="section-title">Key Insights</div>
-      <div class="insight-cards">
-        <div class="insight-card winner">
-          <div class="insight-label">🔴 Highest Total Density (5km)</div>
-          <div class="insight-value" id="ins-dense5">Saket</div>
-          <div class="insight-sub" id="ins-dense5-sub">Loading...</div>
-        </div>
-        <div class="insight-card winner">
-          <div class="insight-label">🟠 Highest Total Density (10km)</div>
-          <div class="insight-value" id="ins-dense10">GK1/GK2</div>
-          <div class="insight-sub" id="ins-dense10-sub">Loading...</div>
-        </div>
-        <div class="insight-card bz">
-          <div class="insight-label">🟣 Most Blinkit+Zepto (5km)</div>
-          <div class="insight-value" id="ins-bz5">East of Kailash</div>
-          <div class="insight-sub" id="ins-bz5-sub">Loading...</div>
-        </div>
-        <div class="insight-card bz">
-          <div class="insight-label">🔵 Most Blinkit+Zepto (10km)</div>
-          <div class="insight-value" id="ins-bz10">Kalkaji</div>
-          <div class="insight-sub" id="ins-bz10-sub">Loading...</div>
-        </div>
-        <div class="insight-card opportunity">
-          <div class="insight-label">🟢 OZI Opportunity Gap</div>
-          <div class="insight-value" id="ins-gap">Mehrauli / Lado Sarai</div>
-          <div class="insight-sub" id="ins-gap-sub">Lowest coverage — first mover advantage</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- NEIGHBOURHOOD LIST -->
-    <div class="section">
-      <div class="section-title">Neighbourhoods</div>
-      <div class="location-list" id="location-list"></div>
-    </div>
-
+<div id="map-wrap">
+  <div id="map"></div>
+  <div class="map-controls">
+    <button class="map-btn on" id="mb-all" onclick="mapMode('all')">All Pins</button>
+    <button class="map-btn" id="mb-zones" onclick="mapMode('zones')">Zones</button>
+    <button class="map-btn" id="mb-radius" onclick="mapMode('radius')">WH Radii</button>
   </div>
-
-  <!-- MAP -->
-  <div style="position:relative; flex:1">
-    <div id="map"></div>
-    
-    <!-- LEGEND -->
-    <div class="map-legend">
-      <div class="legend-title">Heat Intensity</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ff3b3b"></div>Very High (8+)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>High (6–7)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div>Medium (4–5)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Low (1–3)</div>
-      <div style="height:1px; background:var(--border); margin:4px 0"></div>
-      <div class="legend-title">Stores</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f0c027"></div>Blinkit</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Zepto</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Instamart</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Flipkart Min</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div>JioMart Exp</div>
-    </div>
+  <div class="map-legend">
+    <h4>Score Legend</h4>
+    <div class="leg-row"><div class="leg-dot" style="background:#e03030"></div>Score 70+ Critical</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#e07020"></div>Score 40–69 High</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#2a9d3a"></div>Score 20–39 Medium</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#6b7280"></div>Score &lt;20 Low</div>
+    <div style="border-top:1px solid #eee;margin:6px 0"></div>
+    <div class="leg-row"><div class="leg-dot" style="background:#ff6b35;border:2px solid #fff"></div>WH Sec52 (Gurgaon)</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#e83560;border:2px solid #fff"></div>WH Sec84 (Gurgaon)</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#7b5cff;border:2px solid #fff"></div>WH Bisrakh (Noida)</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#5c35e8;border:2px solid #fff"></div>Recommended new WH</div>
+    <div style="border-top:1px solid #eee;margin:6px 0"></div>
+    <div class="leg-row"><div class="leg-dot" style="background:#ff6b35;width:14px;height:8px;border-radius:2px"></div>Orange ring = Sec52</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#e83560;width:14px;height:8px;border-radius:2px"></div>Pink ring = Sec84</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#7b5cff;width:14px;height:8px;border-radius:2px"></div>Purple ring = Bisrakh</div>
   </div>
+</div>
 </div>
 
 <script>
-// ============================================================
-// DATA — Store counts per neighbourhood per platform
-// Based on Google Maps verification + field research (Feb 2026)
-// ============================================================
-const LOCATIONS = [
-  // Hauz Khas Belt
-  { id:'hauz_khas', name:'Hauz Khas', zone:'hauz_khas', lat:28.5494, lng:77.2001,
-    B:2, Z:2, I:1, F:1, J:0 },
-  { id:'green_park', name:'Green Park', zone:'hauz_khas', lat:28.5578, lng:77.2046,
-    B:2, Z:1, I:1, F:0, J:1 },
-  { id:'safdarjung', name:'Safdarjung Enclave', zone:'hauz_khas', lat:28.5672, lng:77.1897,
-    B:1, Z:2, I:2, F:1, J:0 },
-  { id:'yusuf_sarai', name:'Yusuf Sarai', zone:'hauz_khas', lat:28.5606, lng:77.2044,
-    B:1, Z:1, I:1, F:0, J:0 },
-  { id:'sda', name:'SDA', zone:'hauz_khas', lat:28.5504, lng:77.1978,
-    B:1, Z:1, I:0, F:0, J:0 },
-
-  // GK Belt
-  { id:'gk1', name:'Greater Kailash 1', zone:'gk', lat:28.5484, lng:77.2295,
-    B:2, Z:2, I:1, F:1, J:1 },
-  { id:'gk2', name:'Greater Kailash 2', zone:'gk', lat:28.5443, lng:77.2375,
-    B:2, Z:1, I:1, F:1, J:0 },
-  { id:'kailash_col', name:'Kailash Colony', zone:'gk', lat:28.5606, lng:77.2496,
-    B:1, Z:1, I:1, F:0, J:1 },
-  { id:'nehru_place', name:'Nehru Place', zone:'gk', lat:28.5491, lng:77.2519,
-    B:1, Z:1, I:1, F:1, J:0 },
-  { id:'kalkaji', name:'Kalkaji', zone:'gk', lat:28.5426, lng:77.2562,
-    B:2, Z:1, I:2, F:0, J:0 },
-  { id:'alaknanda', name:'Alaknanda', zone:'gk', lat:28.5311, lng:77.2638,
-    B:1, Z:1, I:0, F:0, J:0 },
-  { id:'cr_park', name:'CR Park', zone:'gk', lat:28.5250, lng:77.2484,
-    B:1, Z:1, I:1, F:0, J:1 },
-
-  // Saket Belt
-  { id:'saket', name:'Saket', zone:'saket', lat:28.5244, lng:77.2104,
-    B:3, Z:2, I:2, F:1, J:1 },
-  { id:'malviya_nagar', name:'Malviya Nagar', zone:'saket', lat:28.5320, lng:77.2132,
-    B:2, Z:1, I:1, F:1, J:0 },
-  { id:'mehrauli', name:'Mehrauli', zone:'saket', lat:28.5146, lng:77.1836,
-    B:1, Z:0, I:1, F:0, J:0 },
-  { id:'chhatarpur', name:'Chhatarpur', zone:'saket', lat:28.4954, lng:77.1848,
-    B:2, Z:1, I:0, F:0, J:0 },
-  { id:'lado_sarai', name:'Lado Sarai', zone:'saket', lat:28.5163, lng:77.2011,
-    B:1, Z:1, I:0, F:0, J:0 },
-
-  // Defence Colony Belt
-  { id:'defence_col', name:'Defence Colony', zone:'def_col', lat:28.5736, lng:77.2267,
-    B:1, Z:1, I:1, F:0, J:0 },
-  { id:'lajpat', name:'Lajpat Nagar', zone:'def_col', lat:28.5689, lng:77.2397,
-    B:2, Z:2, I:1, F:1, J:0 },
-  { id:'south_ext', name:'South Extension', zone:'def_col', lat:28.5672, lng:77.2197,
-    B:1, Z:1, I:1, F:0, J:0 },
-  { id:'jangpura', name:'Jangpura', zone:'def_col', lat:28.5887, lng:77.2434,
-    B:1, Z:0, I:0, F:0, J:0 },
-  { id:'new_friends', name:'New Friends Colony', zone:'def_col', lat:28.5716, lng:77.2795,
-    B:1, Z:1, I:0, F:0, J:0 },
+// ================================================================
+// DATA — 80 pincodes, new scoring (Income40/Ped25/Sch20/Kids10/Pre5)
+// ================================================================
+const PINS = [
+  {pc:110003,lat:28.638,lng:77.237,s:7.7,hh:7197,pop:19349,ped:1,pre:11,sch:15,geo:'Delhi',area:'New Delhi',wh:'none',ds52:19.7,ds84:30.5,db:29.5},
+  {pc:110014,lat:28.578,lng:77.213,s:6.6,hh:6039,pop:8624,ped:5,pre:0,sch:21,geo:'Delhi',area:'Karol Bagh',wh:'none',ds52:14.0,ds84:23.6,db:30.2},
+  {pc:110016,lat:28.55,lng:77.202,s:9.9,hh:8296,pop:14689,ped:9,pre:5,sch:17,geo:'Delhi',area:'South Delhi',wh:'none',ds52:11.9,ds84:20.5,db:31.1},
+  {pc:110017,lat:28.533,lng:77.188,s:34.3,hh:20398,pop:28752,ped:56,pre:7,sch:54,geo:'Delhi',area:'South Delhi',wh:'none',ds52:10.2,ds84:18.2,db:32.5},
+  {pc:110018,lat:28.624,lng:77.084,s:39.8,hh:39346,pop:42462,ped:32,pre:4,sch:88,geo:'Delhi',area:'Dwarka',wh:'none',ds52:11.5,ds84:24.3,db:43.4},
+  {pc:110019,lat:28.505,lng:77.253,s:22.4,hh:22226,pop:32524,ped:12,pre:8,sch:58,geo:'Delhi',area:'Hauz Khas',wh:'none',ds52:16.5,ds84:20.9,db:26.5},
+  {pc:110020,lat:28.532,lng:77.186,s:13.4,hh:5944,pop:27002,ped:21,pre:2,sch:13,geo:'Delhi',area:'Vasant Vihar',wh:'s52',ds52:9.9,ds84:18.0,db:32.7},
+  {pc:110021,lat:28.557,lng:77.164,s:4.3,hh:4453,pop:11754,ped:1,pre:0,sch:9,geo:'Delhi',area:'Vasant Kunj',wh:'s52',ds52:8.7,ds84:19.1,db:34.8},
+  {pc:110022,lat:28.523,lng:77.202,s:4.9,hh:4449,pop:7130,ped:0,pre:4,sch:34,geo:'Delhi',area:'South Delhi',wh:'none',ds52:11.4,ds84:18.3,db:31.2},
+  {pc:110023,lat:28.599,lng:77.201,s:3.7,hh:3846,pop:10287,ped:0,pre:2,sch:9,geo:'Delhi',area:'Connaught Place',wh:'none',ds52:14.3,ds84:24.9,db:31.7},
+  {pc:110024,lat:28.575,lng:77.268,s:13.5,hh:12374,pop:16475,ped:13,pre:0,sch:26,geo:'Delhi',area:'Lajpat Nagar',wh:'none',ds52:18.9,ds84:26.9,db:24.8},
+  {pc:110025,lat:28.527,lng:77.216,s:23.4,hh:15691,pop:32790,ped:30,pre:7,sch:35,geo:'Delhi',area:'Saket',wh:'none',ds52:12.8,ds84:19.5,db:29.8},
+  {pc:110026,lat:28.543,lng:77.221,s:10.7,hh:10305,pop:11399,ped:9,pre:5,sch:21,geo:'Delhi',area:'South Delhi',wh:'none',ds52:13.5,ds84:21.1,db:29.2},
+  {pc:110027,lat:28.621,lng:77.121,s:16.7,hh:17753,pop:24523,ped:8,pre:4,sch:40,geo:'Delhi',area:'Paschim Vihar',wh:'none',ds52:11.7,ds84:24.4,db:39.8},
+  {pc:110032,lat:28.569,lng:77.298,s:39.1,hh:45899,pop:40182,ped:11,pre:6,sch:139,geo:'Delhi',area:'Patparganj',wh:'none',ds52:21.5,ds84:28.6,db:21.8},
+  {pc:110048,lat:28.522,lng:77.236,s:15.2,hh:12941,pop:16684,ped:19,pre:3,sch:11,geo:'Delhi',area:'Malviya Nagar',wh:'none',ds52:14.8,ds84:20.7,db:27.9},
+  {pc:110049,lat:28.501,lng:77.207,s:12.7,hh:12760,pop:16418,ped:10,pre:1,sch:22,geo:'Delhi',area:'Kalkaji',wh:'none',ds52:12.1,ds84:17.0,db:31.0},
+  {pc:110057,lat:28.601,lng:77.09,s:5.0,hh:5060,pop:7028,ped:3,pre:0,sch:16,geo:'Delhi',area:'Janakpuri',wh:'s52',ds52:8.9,ds84:21.8,db:42.4},
+  {pc:110058,lat:28.614,lng:77.097,s:20.7,hh:16501,pop:21671,ped:21,pre:6,sch:57,geo:'Delhi',area:'Subhash Nagar',wh:'none',ds52:10.4,ds84:23.3,db:42.0},
+  {pc:110063,lat:28.591,lng:77.071,s:16.9,hh:17760,pop:18676,ped:11,pre:4,sch:39,geo:'Delhi',area:'Dwarka Sec10',wh:'s52',ds52:7.9,ds84:20.6,db:44.1},
+  {pc:110065,lat:28.57,lng:77.065,s:14.2,hh:13359,pop:18933,ped:11,pre:2,sch:34,geo:'Delhi',area:'Dwarka Sec13',wh:'s52',ds52:5.8,ds84:18.2,db:44.5},
+  {pc:110066,lat:28.575,lng:77.049,s:0.7,hh:976,pop:2023,ped:0,pre:0,sch:1,geo:'Delhi',area:'Dwarka outskirts',wh:'s52',ds52:7.0,ds84:18.9,db:46.1},
+  {pc:110070,lat:28.58,lng:77.069,s:23.3,hh:20477,pop:27795,ped:21,pre:15,sch:39,geo:'Delhi',area:'Dwarka Sec6',wh:'s52',ds52:6.7,ds84:19.3,db:44.2},
+  {pc:110075,lat:28.579,lng:77.057,s:56.2,hh:51419,pop:34832,ped:69,pre:10,sch:67,geo:'Delhi',area:'Dwarka Sec17-23',wh:'s52',ds52:7.0,ds84:19.3,db:45.4},
+  {pc:110078,lat:28.558,lng:77.059,s:15.5,hh:20867,pop:14723,ped:4,pre:4,sch:31,geo:'Delhi',area:'Dwarka Sec20',wh:'s52',ds52:4.8,ds84:16.9,db:45.0},
+  {pc:110085,lat:28.697,lng:77.12,s:52.5,hh:51147,pop:53499,ped:44,pre:9,sch:112,geo:'Delhi',area:'Rohini',wh:'none',ds52:19.9,ds84:32.7,db:42.5},
+  {pc:110091,lat:28.633,lng:77.294,s:30.9,hh:33079,pop:23275,ped:18,pre:18,sch:86,geo:'Delhi',area:'Mayur Vihar Ph2',wh:'none',ds52:23.9,ds84:33.3,db:24.1},
+  {pc:110092,lat:28.647,lng:77.315,s:72.9,hh:76137,pop:61036,ped:56,pre:32,sch:133,geo:'Delhi',area:'Mayur Vihar Ph3',wh:'none',ds52:26.5,ds84:35.9,db:22.9},
+  {pc:122001,lat:28.473,lng:77.026,s:48.8,hh:36192,pop:46897,ped:50,pre:21,sch:157,geo:'Gurgaon',area:'Gurgaon Sec14/DLF',wh:'both_gur',ds52:7.9,ds84:8.7,db:48.9},
+  {pc:122002,lat:28.48,lng:77.022,s:8.8,hh:9645,pop:9919,ped:5,pre:4,sch:18,geo:'Gurgaon',area:'Gurgaon Sec15',wh:'both_gur',ds52:7.7,ds84:9.5,db:49.2},
+  {pc:122003,lat:28.467,lng:77.048,s:37.6,hh:31485,pop:20669,ped:49,pre:23,sch:41,geo:'Gurgaon',area:'Gurgaon Old City',wh:'both_gur',ds52:7.0,ds84:7.1,db:47.0},
+  {pc:122004,lat:28.459,lng:77.022,s:21.9,hh:19346,pop:18826,ped:17,pre:27,sch:52,geo:'Gurgaon',area:'Gurgaon Sec4',wh:'both_gur',ds52:9.2,ds84:7.6,db:49.6},
+  {pc:122005,lat:28.452,lng:77.012,s:3.3,hh:2631,pop:2336,ped:5,pre:1,sch:4,geo:'Gurgaon',area:'Gurgaon outskirts',wh:'s84',ds52:10.5,ds84:7.7,db:50.7},
+  {pc:122006,lat:28.435,lng:77.052,s:7.5,hh:8351,pop:7790,ped:1,pre:5,sch:36,geo:'Gurgaon',area:'Gurgaon Sec9',wh:'s84',ds52:10.1,ds84:3.7,db:47.4},
+  {pc:122007,lat:28.443,lng:77.028,s:4.9,hh:4029,pop:6663,ped:5,pre:3,sch:9,geo:'Gurgaon',area:'Gurgaon Sec5',wh:'s84',ds52:10.3,ds84:5.9,db:49.4},
+  {pc:122009,lat:28.421,lng:77.053,s:5.7,hh:4123,pop:3134,ped:9,pre:4,sch:6,geo:'Gurgaon',area:'Gurgaon Sec10A',wh:'s84',ds52:11.6,ds84:2.4,db:47.7},
+  {pc:122010,lat:28.421,lng:77.064,s:4.8,hh:3171,pop:3918,ped:7,pre:3,sch:10,geo:'Gurgaon',area:'Gurgaon Sec10',wh:'s84',ds52:11.3,ds84:1.8,db:46.7},
+  {pc:122011,lat:28.441,lng:77.027,s:11.4,hh:9507,pop:4756,ped:17,pre:3,sch:10,geo:'Gurgaon',area:'Gurgaon Sec7',wh:'s84',ds52:10.5,ds84:5.8,db:49.6},
+  {pc:122015,lat:28.415,lng:77.09,s:3.1,hh:3123,pop:7467,ped:0,pre:5,sch:7,geo:'Gurgaon',area:'Gurgaon outskirts',wh:'s84',ds52:11.8,ds84:2.1,db:44.5},
+  {pc:122016,lat:28.408,lng:77.09,s:2.2,hh:2278,pop:6133,ped:1,pre:0,sch:3,geo:'Gurgaon',area:'Gurgaon south',wh:'s84',ds52:12.6,ds84:1.9,db:44.7},
+  {pc:122017,lat:28.397,lng:77.028,s:20.1,hh:18609,pop:14506,ped:18,pre:19,sch:39,geo:'Gurgaon',area:'Gurgaon Sec49',wh:'s84',ds52:14.9,ds84:4.3,db:50.9},
+  {pc:122018,lat:28.489,lng:77.057,s:24.2,hh:19688,pop:11576,ped:37,pre:7,sch:16,geo:'Gurgaon',area:'Gurgaon Sec18',wh:'both_gur',ds52:4.5,ds84:9.3,db:45.7},
+  {pc:122022,lat:28.38,lng:77.028,s:3.8,hh:2628,pop:4393,ped:6,pre:2,sch:1,geo:'Gurgaon',area:'Gurgaon south',wh:'s84',ds52:16.6,ds84:5.1,db:51.5},
+  {pc:122101,lat:28.465,lng:77.072,s:5.5,hh:4735,pop:11306,ped:2,pre:6,sch:16,geo:'Gurgaon',area:'Gurgaon Sohna Rd',wh:'both_gur',ds52:6.4,ds84:6.6,db:44.7},
+  {pc:122102,lat:28.448,lng:77.054,s:29.3,hh:20890,pop:39899,ped:14,pre:52,sch:120,geo:'Gurgaon',area:'Gurgaon Sohna Rd S',wh:'both_gur',ds52:8.7,ds84:5.0,db:46.8},
+  {pc:122103,lat:28.505,lng:77.084,s:16.0,hh:4459,pop:43382,ped:1,pre:5,sch:169,geo:'Gurgaon',area:'Gurgaon Sec23',wh:'s52',ds52:1.8,ds84:11.1,db:42.8},
+  {pc:122505,lat:28.394,lng:77.054,s:15.4,hh:11026,pop:16359,ped:9,pre:15,sch:83,geo:'Gurgaon',area:'Gurgaon Palam Vihar',wh:'s84',ds52:14.4,ds84:2.1,db:48.6},
+  {pc:110071,lat:28.56,lng:77.195,s:10.0,hh:10733,pop:14621,ped:0,pre:13,sch:40,geo:'Delhi',area:'Sarita Vihar',wh:'none',ds52:11.6,ds84:21.0,db:31.8},
+  {pc:122022,lat:28.38,lng:77.028,s:3.8,hh:2628,pop:4393,ped:6,pre:2,sch:1,geo:'Gurgaon',area:'Gurgaon south',wh:'s84',ds52:16.6,ds84:5.1,db:51.5},
+  {pc:201301,lat:28.571,lng:77.432,s:42.0,hh:42406,pop:45877,ped:36,pre:12,sch:52,geo:'Ghaziabad/GN',area:'Noida Sec19/20',wh:'bisrakh',ds52:34.3,ds84:39.8,db:9.0},
+  {pc:201303,lat:28.607,lng:77.455,s:19.6,hh:20837,pop:15698,ped:15,pre:11,sch:33,geo:'Ghaziabad/GN',area:'Vasundhara',wh:'bisrakh',ds52:37.4,ds84:43.7,db:9.3},
+  {pc:201304,lat:28.63,lng:77.415,s:69.7,hh:54689,pop:45184,ped:81,pre:69,sch:122,geo:'Ghaziabad/GN',area:'Indirapuram',wh:'none',ds52:34.4,ds84:41.8,db:13.9},
+  {pc:201305,lat:28.54,lng:77.418,s:19.7,hh:14907,pop:30028,ped:14,pre:18,sch:61,geo:'Ghaziabad/GN',area:'Noida Sec37',wh:'bisrakh',ds52:32.6,ds84:37.0,db:10.0},
+  {pc:201306,lat:28.54,lng:77.406,s:16.2,hh:12909,pop:21994,ped:6,pre:7,sch:98,geo:'Ghaziabad/GN',area:'Noida Sec29',wh:'none',ds52:31.4,ds84:36.0,db:11.2},
+  {pc:201307,lat:28.556,lng:77.482,s:36.9,hh:45907,pop:39525,ped:9,pre:12,sch:97,geo:'Ghaziabad/GN',area:'Vaishali',wh:'bisrakh',ds52:39.0,ds84:43.5,db:3.9},
+  {pc:201308,lat:28.45,lng:77.48,s:3.2,hh:2320,pop:1630,ped:5,pre:2,sch:5,geo:'Ghaziabad/GN',area:'GN West',wh:'none',ds52:39.4,ds84:40.3,db:11.4},
+  {pc:201309,lat:28.434,lng:77.54,s:8.5,hh:11238,pop:7496,ped:5,pre:2,sch:3,geo:'Ghaziabad/GN',area:'Greater Noida',wh:'none',ds52:45.5,ds84:46.0,db:12.6},
+  {pc:201310,lat:28.591,lng:77.499,s:21.6,hh:12750,pop:17698,ped:21,pre:16,sch:113,geo:'Ghaziabad/GN',area:'Kaushambi',wh:'bisrakh',ds52:41.2,ds84:46.6,db:5.4},
+  {pc:201311,lat:28.453,lng:77.52,s:2.4,hh:410,pop:2181,ped:0,pre:0,sch:43,geo:'Ghaziabad/GN',area:'Greater Noida',wh:'none',ds52:43.2,ds84:44.2,db:10.3},
+  {pc:201312,lat:28.427,lng:77.536,s:0.0,hh:5,pop:764,ped:0,pre:0,sch:1,geo:'Ghaziabad/GN',area:'GN South',wh:'none',ds52:45.3,ds84:45.5,db:13.3},
+  {pc:201313,lat:28.44,lng:77.53,s:3.3,hh:770,pop:4466,ped:0,pre:20,sch:23,geo:'Ghaziabad/GN',area:'Greater Noida',wh:'none',ds52:44.4,ds84:45.0,db:11.8},
+  {pc:201009,lat:28.62,lng:77.38,s:56.5,hh:30548,pop:86177,ped:66,pre:41,sch:152,geo:'Noida',area:'Noida Sec50-52',wh:'none',ds52:30.8,ds84:38.4,db:16.0},
+  {pc:203207,lat:28.459,lng:77.573,s:47.8,hh:19200,pop:61772,ped:29,pre:22,sch:423,geo:'Greater Noida',area:'Greater Noida',wh:'none',ds52:48.2,ds84:49.4,db:11.0},
+  {pc:201001,lat:28.57,lng:77.326,s:16.4,hh:9843,pop:32084,ped:15,pre:0,sch:62,geo:'Noida',area:'Noida Sec1-15',wh:'none',ds52:24.2,ds84:30.9,db:19.1},
+  {pc:201002,lat:28.58,lng:77.321,s:47.4,hh:19053,pop:55013,ped:36,pre:28,sch:379,geo:'Noida',area:'Noida Sec15-16',wh:'none',ds52:24.0,ds84:31.2,db:19.8},
+  {pc:201007,lat:28.505,lng:77.43,s:3.1,hh:2122,pop:11072,ped:1,pre:0,sch:12,geo:'Noida',area:'Noida Sec44',wh:'bisrakh',ds52:33.8,ds84:36.8,db:9.9},
+  {pc:201010,lat:28.55,lng:77.44,s:4.9,hh:4164,pop:18117,ped:0,pre:5,sch:8,geo:'Noida',area:'Noida Sec18',wh:'bisrakh',ds52:34.8,ds84:39.5,db:7.8},
+  {pc:201012,lat:28.503,lng:77.372,s:11.2,hh:8571,pop:14915,ped:12,pre:12,sch:10,geo:'Noida',area:'Noida Sec41',wh:'none',ds52:28.1,ds84:31.3,db:15.2},
+  {pc:201014,lat:28.476,lng:77.394,s:29.4,hh:15554,pop:31475,ped:51,pre:13,sch:21,geo:'Noida',area:'Noida Sec46',wh:'none',ds52:30.6,ds84:32.5,db:14.6},
+  {pc:201016,lat:28.445,lng:77.474,s:5.0,hh:1933,pop:3481,ped:9,pre:0,sch:20,geo:'Noida',area:'Noida Sec135',wh:'none',ds52:38.9,ds84:39.6,db:12.1},
+  {pc:201019,lat:28.509,lng:77.433,s:13.1,hh:7587,pop:17239,ped:19,pre:15,sch:5,geo:'Noida',area:'Noida Sec40',wh:'bisrakh',ds52:34.0,ds84:37.2,db:9.4},
+  {pc:201017,lat:28.458,lng:77.46,s:5.1,hh:3179,pop:8176,ped:8,pre:1,sch:2,geo:'Noida',area:'Noida Sec96',wh:'none',ds52:37.3,ds84:38.5,db:11.4},
+  {pc:121001,lat:28.396,lng:77.312,s:30.6,hh:17205,pop:52432,ped:19,pre:13,sch:185,geo:'Faridabad',area:'Faridabad NIT',wh:'none',ds52:26.2,ds84:23.6,db:26.3},
+  {pc:121002,lat:28.414,lng:77.291,s:36.5,hh:24405,pop:48994,ped:28,pre:27,sch:157,geo:'Faridabad',area:'Faridabad Sec7',wh:'none',ds52:23.4,ds84:21.5,db:26.8},
+  {pc:121003,lat:28.385,lng:77.312,s:16.3,hh:11590,pop:30510,ped:6,pre:5,sch:97,geo:'Faridabad',area:'Faridabad',wh:'none',ds52:26.9,ds84:23.7,db:27.1},
+  {pc:121007,lat:28.369,lng:77.299,s:4.1,hh:2699,pop:6625,ped:5,pre:0,sch:11,geo:'Faridabad',area:'Faridabad south',wh:'none',ds52:26.9,ds84:22.7,db:29.2},
+  {pc:121009,lat:28.354,lng:77.285,s:5.4,hh:4356,pop:7731,ped:3,pre:1,sch:28,geo:'Faridabad',area:'Faridabad south',wh:'none',ds52:27.0,ds84:21.7,db:31.4},
+  {pc:121012,lat:28.348,lng:77.309,s:3.6,hh:1969,pop:4430,ped:3,pre:2,sch:23,geo:'Faridabad',area:'Faridabad south',wh:'none',ds52:29.2,ds84:24.2,db:30.2},
+  {pc:121013,lat:28.376,lng:77.328,s:11.4,hh:10345,pop:17985,ped:2,pre:3,sch:67,geo:'Faridabad',area:'Faridabad east',wh:'none',ds52:28.7,ds84:25.4,db:26.6},
+  {pc:121014,lat:28.362,lng:77.355,s:4.0,hh:2562,pop:5094,ped:1,pre:10,sch:25,geo:'Faridabad',area:'Faridabad east',wh:'none',ds52:31.8,ds84:28.2,db:26.1},
+  {pc:121101,lat:28.312,lng:77.32,s:5.5,hh:3097,pop:6717,ped:0,pre:0,sch:68,geo:'Faridabad',area:'Faridabad south',wh:'none',ds52:32.7,ds84:26.5,db:32.5}
 ];
 
-const ZONE_CENTERS = {
-  hauz_khas: { lat: 28.557, lng: 77.198, zoom: 14 },
-  gk:        { lat: 28.543, lng: 77.252, zoom: 14 },
-  saket:     { lat: 28.520, lng: 77.205, zoom: 14 },
-  def_col:   { lat: 28.575, lng: 77.245, zoom: 14 },
-};
+// Deduplicate
+const seen=new Set(); 
+const PINS_DEDUP=PINS.filter(p=>{if(seen.has(p.pc))return false;seen.add(p.pc);return true;});
+PINS.length=0; PINS_DEDUP.forEach(p=>PINS.push(p));
 
-// ============================================================
-// STATE
-// ============================================================
-let activeRadius = 5;
-let activePlatforms = { blinkit:true, zepto:true, instamart:true, flipkart:true, jiomart:true };
-let activeZones = { hauz_khas:true, gk:true, saket:true, def_col:true };
-let visibleAreas = new Set(LOCATIONS.map(l => l.id));
-let markers = [];
-let heatLayer = null;
-let circleLayer = null;
-let currentSelected = null;
-let map;
+PINS.forEach(p=>{
+  p.covB = p.wh==='bisrakh'||p.wh==='both_gur';
+  p.covS52 = p.wh==='s52'||p.wh==='both_gur';
+  p.covS84 = p.wh==='s84'||p.wh==='both_gur';
+  p.covered = p.wh!=='none';
+});
 
-// ============================================================
-// HELPERS
-// ============================================================
-function getScore(loc) {
-  let s = 0;
-  if (activePlatforms.blinkit) s += loc.B;
-  if (activePlatforms.zepto)   s += loc.Z;
-  if (activePlatforms.instamart) s += loc.I;
-  if (activePlatforms.flipkart) s += loc.F;
-  if (activePlatforms.jiomart) s += loc.J;
-  return s;
-}
+// Existing WHs
+const WH_EXISTING = []; // Fresh start — no existing WHs for 40min TAT exercise
 
-function totalAll(loc) { return loc.B + loc.Z + loc.I + loc.F + loc.J; }
+// ── 40 MIN TAT OPTIMIZATION ──────────────────────────────────
+// TAT: 40 min @ 20km/h NCR avg = 13km serviceable radius
+// Fresh start — no existing WHs assumed
+// Greedy set cover: 7 WHs cover all 80 pincodes (100%)
+// ── TRAVEL TIME CONFIG ─────────────────────────────────────────
+const TAT_MINUTES = 40;          // delivery TAT target
+const DELIVERY_RADIUS = 13;      // fallback straight-line km (used until OSRM loads)
+const OSRM_BASE = 'https://router.project-osrm.org';
 
-function heatColor(score) {
-  if (score >= 8) return '#ff3b3b';
-  if (score >= 6) return '#f97316';
-  if (score >= 4) return '#eab308';
-  if (score >= 2) return '#84cc16';
-  return '#22c55e';
-}
+// Travel time cache: travelCache[wh_id][pincode] = minutes
+const travelCache = {};
+let osrmLoaded = false;
 
-function heatClass(score) {
-  if (score >= 8) return 'total-heat-5';
-  if (score >= 7) return 'total-heat-4';
-  if (score >= 5) return 'total-heat-3';
-  if (score >= 4) return 'total-heat-2';
-  if (score >= 2) return 'total-heat-1';
-  return 'total-heat-0';
-}
+// Fetch real travel time from OSRM for one WH → all pins
+async function fetchTravelTimes(wh) {
+  if(travelCache[wh.id]) return; // already fetched
+  travelCache[wh.id] = {};
 
-function dist(a, b) {
-  const R = 6371;
-  const dLat = (b.lat - a.lat) * Math.PI / 180;
-  const dLng = (b.lng - a.lng) * Math.PI / 180;
-  const aa = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
-}
+  // OSRM table API: 1 source → N destinations
+  // format: /table/v1/driving/lng,lat;lng,lat;...?sources=0&annotations=duration
+  const coords = [
+    `${wh.lng},${wh.lat}`,        // index 0 = WH (source)
+    ...PINS.map(p=>`${p.lng},${p.lat}`) // index 1..N = pincodes
+  ].join(';');
 
-// ============================================================
-// INIT MAP
-// ============================================================
-function initMap() {
-  map = L.map('map', { center: [28.543, 77.225], zoom: 13, zoomControl: true });
-  
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '© OpenStreetMap © CARTO',
-    subdomains: 'abcd', maxZoom: 19
-  }).addTo(map);
-  
-  renderAll();
-}
+  const url = `${OSRM_BASE}/table/v1/driving/${coords}?sources=0&annotations=duration`;
 
-// ============================================================
-// RENDER
-// ============================================================
-function renderAll() {
-  renderMarkers();
-  renderHeat();
-  renderSidebar();
-  updateInsights();
-  updateZoneTotals();
-  updatePlatformCounts();
-}
-
-function renderMarkers() {
-  markers.forEach(m => m.remove());
-  markers = [];
-  if (circleLayer) { circleLayer.remove(); circleLayer = null; }
-  
-  const COLORS = { B:'#d4a017', Z:'#7c3aed', I:'#ea580c', F:'#2563eb', J:'#db2777' };
-  const PLATFORMS = ['B','Z','I','F','J'];
-  const PLAT_NAMES = { B:'Blinkit', Z:'Zepto', I:'Instamart', F:'Flipkart Min', J:'JioMart Exp' };
-  const ACTIVE_MAP = { B:'blinkit', Z:'zepto', I:'instamart', F:'flipkart', J:'jiomart' };
-  
-  LOCATIONS.forEach(loc => {
-    // Skip if zone is filtered out or area is hidden
-    if (!activeZones[loc.zone] || !visibleAreas.has(loc.id)) return;
-    
-    // Main circle marker (score-colored)
-    const score = getScore(loc);
-    const color = heatColor(score);
-    const radius = 10 + score * 2.5;
-    
-    const circle = L.circleMarker([loc.lat, loc.lng], {
-      radius: Math.min(radius, 30), color: color, weight: 2,
-      fillColor: color, fillOpacity: 0.25, opacity: 0.9
-    }).addTo(map);
-    
-    // Label marker
-    const icon = L.divIcon({
-      html: `<div style="
-        background:rgba(255,255,255,0.92);
-        border:1.5px solid ${color};
-        border-radius:5px;
-        padding:2px 6px;
-        font-size:9px;
-        font-family:'Space Mono',monospace;
-        color:${color};
-        font-weight:700;
-        white-space:nowrap;
-        backdrop-filter:blur(4px);
-        box-shadow:0 2px 6px rgba(0,0,0,0.12);
-        ">${score}</div>`,
-      iconAnchor: [15, -8], className: ''
+  try {
+    const res = await fetch(url, {signal: AbortSignal.timeout(15000)});
+    const data = await res.json();
+    if(data.code === 'Ok' && data.durations) {
+      const row = data.durations[0]; // source=0, one row of durations
+      PINS.forEach((p,i) => {
+        const secs = row[i+1]; // +1 because index 0 is the WH itself
+        travelCache[wh.id][p.pc] = secs ? Math.round(secs/60) : 999;
+      });
+    }
+  } catch(e) {
+    console.warn('OSRM failed for '+wh.id+', using straight-line fallback:', e.message);
+    // Fallback: estimate from straight-line distance
+    PINS.forEach(p => {
+      const km = hav({lat:wh.lat,lng:wh.lng},{lat:p.lat,lng:p.lng});
+      travelCache[wh.id][p.pc] = Math.round((km/20)*60); // 20km/h avg
     });
-    const label = L.marker([loc.lat, loc.lng], { icon }).addTo(map);
-    
-    // Tooltip
-    const tooltipHtml = `
-      <div>
-        <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#0f172a;">${loc.name}</div>
-        <div style="font-size:10px;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">${loc.zone.replace('_',' ').toUpperCase()} BELT</div>
-        <div style="display:flex;flex-direction:column;gap:3px;">
-          ${PLATFORMS.map(p => activePlatforms[ACTIVE_MAP[p]] ? `
-            <div style="display:flex;align-items:center;gap:8px;">
-              <div style="width:6px;height:6px;border-radius:50%;background:${COLORS[p]};flex-shrink:0;"></div>
-              <span style="font-size:11px;flex:1;color:#334155;">${PLAT_NAMES[p]}</span>
-              <span style="font-family:Space Mono,monospace;font-size:11px;color:${COLORS[p]};font-weight:700;">${loc[p]}</span>
-            </div>` : '').join('')}
-        </div>
-        <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:10px;color:#64748b;">TOTAL</span>
-          <span style="font-family:Space Mono,monospace;font-size:16px;font-weight:700;color:${color};">${score}</span>
-        </div>
-      </div>`;
-    
-    circle.bindTooltip(tooltipHtml, { className: 'map-tooltip', sticky: false });
-    label.bindTooltip(tooltipHtml, { className: 'map-tooltip', sticky: false });
-    
-    circle.on('click', () => selectLocation(loc));
-    label.on('click', () => selectLocation(loc));
-    
-    markers.push(circle, label);
+  }
+}
+
+// Get travel time in minutes (from cache, else fallback)
+function getTravelTime(whId, pc) {
+  if(travelCache[whId] && travelCache[whId][pc] !== undefined) {
+    return travelCache[whId][pc];
+  }
+  // Fallback: straight line estimate
+  const wh = CANDIDATE_WHS.find(w=>w.id===whId);
+  const pin = PINS.find(p=>p.pc===pc);
+  if(!wh||!pin) return 999;
+  return Math.round((hav({lat:wh.lat,lng:wh.lng},{lat:pin.lat,lng:pin.lng})/20)*60);
+}
+
+// Check if pin is within TAT from WH
+function isWithinTAT(whId, pc) {
+  return getTravelTime(whId, pc) <= TAT_MINUTES;
+}
+
+const CANDIDATE_WHS = [
+  {id:'wh1',rank:'#1',name:'Gurgaon Sec52 / Udyog Vihar',shortName:'Gurgaon Sec52',
+   lat:28.521,lng:77.085,col:'#ff6b35',active:false,
+   reason:'Highest single-WH coverage — 34 pincodes including all of Gurgaon + Dwarka belt + South Delhi. Score 557. Priority #1 in any expansion plan.',
+   scoreGain:557,netNew:34,order:1},
+  {id:'wh2',rank:'#2',name:'Noida Sec15 / Film City Rd',shortName:'Noida Sec15',
+   lat:28.575,lng:77.340,col:'#5c35e8',active:false,
+   reason:'Captures entire East Delhi + Noida core — Mayur Vihar Ph3 (72.9), Indirapuram (69.7), Noida Sec50-52 (56.5). 22 net new pincodes. NH-24 direct access.',
+   scoreGain:568,netNew:22,order:2},
+  {id:'wh3',rank:'#3',name:'Bisrakh / Jalalpur',shortName:'Bisrakh',
+   lat:28.546,lng:77.520,col:'#7b5cff',active:false,
+   reason:'Ghaziabad corridor — Greater Noida (47.8), Vaishali (36.9), Kaushambi (21.6). 9 new pincodes after WHs 1&2.',
+   scoreGain:252,netNew:9,order:3},
+  {id:'wh4',rank:'#4',name:'Faridabad Mathura Rd / NH19',shortName:'Faridabad',
+   lat:28.408,lng:77.308,col:'#e07020',active:false,
+   reason:'Entire Faridabad zone — 121002 (36.5), 121001 (30.6). 9 new pincodes. Completely separate geography, zero overlap.',
+   scoreGain:180,netNew:9,order:4},
+  {id:'wh5',rank:'#5',name:'Gurgaon Sec84 / NH48 South',shortName:'Gurgaon Sec84',
+   lat:28.406,lng:77.071,col:'#e83560',active:false,
+   reason:'Gurgaon south tail — Sec49, Palam Vihar. 3 new pincodes that Sec52 misses due to distance.',
+   scoreGain:274,netNew:3,order:5},
+  {id:'wh6',rank:'#6',name:'Dwarka Sec10 / NH48',shortName:'Dwarka',
+   lat:28.590,lng:77.085,col:'#2a9d3a',active:false,
+   reason:'Rohini (52.5) + Connaught Place. Delhi North-West dark zone. 2 key pins unlocked including highest uncovered.',
+   scoreGain:152,netNew:2,order:6},
+  {id:'wh7',rank:'#7',name:'Greater Noida Alpha / Surajpur',shortName:'Gr. Noida',
+   lat:28.480,lng:77.560,col:'#9333ea',active:false,
+   reason:'GN South — last remaining pincode (201312). Low score (0.0) but completes 100% geographic coverage.',
+   scoreGain:125,netNew:1,order:7},
+];
+
+// Keep WH_NEW for backward compat
+const WH_NEW = CANDIDATE_WHS;
+
+const MOTHER_WH = {lat:28.504,lng:77.281,name:'Mother WH — Okhla/NH44 junction'};
+// Center of gravity of all 7 WHs — equidistant from all zones
+let motherWHVisible = false;
+let motherMapMarker = null, motherMapLines = [];
+let selectedCandidateLines = [], selectedCandidateCircle = null;
+let candidateMapMarkers = {};
+
+// Zones for sidebar
+const ZONES = [
+  {id:'z-del',label:'Delhi',color:'#5c35e8',pincodes:PINS.filter(p=>p.geo==='Delhi').map(p=>p.pc)},
+  {id:'z-gur',label:'Gurgaon',color:'#ff6b35',pincodes:PINS.filter(p=>p.geo==='Gurgaon').map(p=>p.pc)},
+  {id:'z-noi',label:'Noida',color:'#2a9d3a',pincodes:PINS.filter(p=>p.geo==='Noida').map(p=>p.pc)},
+  {id:'z-ghz',label:'Ghaziabad / GN',color:'#e07020',pincodes:PINS.filter(p=>p.geo==='Ghaziabad/GN').map(p=>p.pc)},
+  {id:'z-far',label:'Faridabad',color:'#e03030',pincodes:PINS.filter(p=>p.geo==='Faridabad').map(p=>p.pc)},
+  {id:'z-grn',label:'Greater Noida',color:'#7b5cff',pincodes:PINS.filter(p=>p.geo==='Greater Noida').map(p=>p.pc)},
+];
+
+// ================================================================
+// MAP
+// ================================================================
+const map = new google.maps.Map(document.getElementById('map'),{
+  center:{lat:28.52,lng:77.25},
+  zoom:11,
+  mapTypeId:'roadmap',
+  mapTypeControl:true,
+  mapTypeControlOptions:{
+    style:google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+    position:google.maps.ControlPosition.TOP_LEFT,
+    mapTypeIds:['roadmap','satellite','hybrid','terrain']
+  },
+  streetViewControl:false,
+  fullscreenControl:true,
+  zoomControl:true,
+  zoomControlOptions:{position:google.maps.ControlPosition.LEFT_BOTTOM},
+  styles:[
+    {featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},
+    {featureType:'transit',elementType:'labels.icon',stylers:[{visibility:'off'}]}
+  ]
+});
+const infoWindow = new google.maps.InfoWindow();
+
+function hav(a,b){
+  const R=6371,dlat=(b.lat-a.lat)*Math.PI/180,dlng=(b.lng-a.lng)*Math.PI/180;
+  const x=Math.sin(dlat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dlng/2)**2;
+  return +(R*2*Math.asin(Math.sqrt(x))).toFixed(1);
+}
+
+function scoreColor(s){
+  if(s>=70)return'#e03030';
+  if(s>=40)return'#e07020';
+  if(s>=20)return'#2a9d3a';
+  return'#6b7280';
+}
+
+function whBadgeColor(wh){
+  if(wh==='s52')return{bg:'#fff3ee',fg:'#e05020',text:'Sec52'};
+  if(wh==='s84')return{bg:'#fff0f4',fg:'#e03060',text:'Sec84'};
+  if(wh==='bisrakh')return{bg:'#f0eeff',fg:'#6040e0',text:'Bisrakh'};
+  if(wh==='both_gur')return{bg:'#fff3ee',fg:'#e05020',text:'Both GUR'};
+  return{bg:'#f5f5f5',fg:'#999',text:'None'};
+}
+
+let pinMarkers=[], radiusCircles=[], zonePolygons=[], currentMapMode='all';
+
+function makePinMarker(p){
+  const cov=isCoveredByActive(p);
+  const r=p.s>=70?10:p.s>=40?8:p.s>=20?6:4;
+  const col=scoreColor(p.s);
+  const m=new google.maps.Marker({
+    position:{lat:p.lat,lng:p.lng},
+    map,
+    icon:{
+      path:google.maps.SymbolPath.CIRCLE,
+      fillColor:col, fillOpacity:0.9,
+      strokeColor:cov?'#5c35e8':'#e03030',
+      strokeWeight:p.s>=40?2.5:1.5,
+      scale:r
+    },
+    zIndex:p.s>=70?10:5,
+    title:p.pc+' · '+p.area
   });
+  m.addListener('click',()=>{
+    infoWindow.setContent(`<div style="font-family:'Syne',sans-serif;min-width:210px;padding:4px">
+      <div style="font-size:14px;font-weight:800;color:#111;margin-bottom:2px">${p.area}</div>
+      <div style="font-size:11px;color:#aaa;font-family:'DM Mono',monospace;margin-bottom:8px">${p.pc} · ${p.geo}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px">
+        <div style="background:#f7f8fa;border-radius:5px;padding:6px 8px"><div style="font-size:16px;font-weight:800;color:${col}">${p.s}</div><div style="font-size:8px;color:#aaa;text-transform:uppercase">Ozi Score</div></div>
+        <div style="background:#f7f8fa;border-radius:5px;padding:6px 8px"><div style="font-size:13px;font-weight:700;color:#333">${(p.hh/1000).toFixed(1)}k</div><div style="font-size:8px;color:#aaa;text-transform:uppercase">HH ₹10L+</div></div>
+        <div style="background:#f7f8fa;border-radius:5px;padding:6px 8px"><div style="font-size:13px;font-weight:700;color:#333">${p.ped}</div><div style="font-size:8px;color:#aaa;text-transform:uppercase">Ped Clinics</div></div>
+        <div style="background:#f7f8fa;border-radius:5px;padding:6px 8px"><div style="font-size:13px;font-weight:700;color:#333">${(p.pop/1000).toFixed(0)}k</div><div style="font-size:8px;color:#aaa;text-transform:uppercase">Kids &lt;6</div></div>
+      </div>
+      <div style="padding:4px 8px;border-radius:4px;background:${cov?'#f0fdf4':'#fff5f5'};color:${cov?'#166534':'#991b1b'};font-size:10px;font-weight:700">${cov?'✓ Within 40 min TAT':'✗ Not covered'}</div>
+    </div>`);
+    infoWindow.open(map,m);
+  });
+  return m;
 }
 
-function renderHeat() {
-  if (heatLayer) { heatLayer.remove(); heatLayer = null; }
-  
-  const heatPoints = LOCATIONS
-    .filter(loc => activeZones[loc.zone] && visibleAreas.has(loc.id))
-    .map(loc => {
-      const score = getScore(loc);
-      return [loc.lat, loc.lng, score / 12];
+
+function makeWHMarker(wh, isExisting=true){
+  const label2=isExisting?'WH':(wh.rank||'WH');
+  const svg2=encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="'+wh.col+'" stroke="white" stroke-width="3"/><text x="20" y="24" text-anchor="middle" font-family="Arial" font-size="10" font-weight="900" fill="white">'+label2+'</text></svg>');
+  const mwh=new google.maps.Marker({map,position:{lat:wh.lat,lng:wh.lng},icon:{url:'data:image/svg+xml;charset=UTF-8,'+svg2,scaledSize:new google.maps.Size(40,40),anchor:new google.maps.Point(20,20)},zIndex:900,title:wh.name||label2});
+  mwh.addListener('click',()=>{infoWindow.setContent('<b style="color:'+wh.col+'">'+(wh.name||label2)+'</b>');infoWindow.open(map,mwh);});
+  return mwh;
+}
+
+function initMap(){
+  // Pin markers
+  pinMarkers=PINS.map(p=>makePinMarker(p));
+  // Existing WH markers + radii
+  WH_EXISTING.forEach(wh=>{
+    makeWHMarker(wh,true);
+    const c=new google.maps.Circle({map,center:{lat:wh.lat,lng:wh.lng},radius:DELIVERY_RADIUS*1000,fillColor:wh.col,fillOpacity:0.06,strokeColor:wh.col,strokeWeight:1.5,strokeOpacity:0.5});
+    radiusCircles.push(c);
+  });
+  // New WH markers
+  WH_NEW.forEach(wh=>makeWHMarker(wh,false));
+}
+
+function mapMode(m){
+  currentMapMode=m;
+  document.querySelectorAll('.map-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('mb-'+m).classList.add('on');
+  zonePolygons.forEach(p=>{try{p.setMap(null);}catch(e){}}); zonePolygons=[];
+  radiusCircles.forEach(c=>{
+    c.setMap(m==='radii'||m==='all'?map:null);
+  });
+  zonePolygons.forEach(p=>{try{p.setMap(null);}catch(e){}});
+  zonePolygons=[];
+  if(m==='zones'){
+    ZONES.forEach(z=>{
+      const pins=PINS.filter(p=>z.pincodes.includes(p.pc));
+      if(pins.length<2)return;
+      const pts=pins.map(p=>[p.lat,p.lng]);
+      const hull=convexHull(pts);
+      const poly=new google.maps.Polygon({map,paths:hull.map(h=>({lat:h[0],lng:h[1]})),fillColor:z.color,fillOpacity:0.08,strokeColor:z.color,strokeWeight:1.5,strokeOpacity:0.5});
+      zonePolygons.push(poly);
     });
-  
-  if (heatPoints.length === 0) return;
-  
-  heatLayer = L.heatLayer(heatPoints, {
-    radius: 60, blur: 50, maxZoom: 17,
-    gradient: { 0.1:'#86efac', 0.3:'#fde047', 0.5:'#fb923c', 0.7:'#ef4444', 1.0:'#b91c1c' },
-    max: 1.0, minOpacity: 0.35
-  }).addTo(map);
+  }
 }
 
-function renderSidebar() {
-  const filtered = LOCATIONS.filter(loc => activeZones[loc.zone]);
-  const sorted = [...filtered].sort((a,b) => getScore(b) - getScore(a));
-  const list = document.getElementById('location-list');
-  const COLORS = { B:'#d4a017', Z:'#7c3aed', I:'#ea580c', F:'#2563eb', J:'#db2777' };
-  const maxScore = Math.max(...LOCATIONS.map(getScore));
-  
-  list.innerHTML = sorted.map(loc => {
-    const score = getScore(loc);
-    const color = heatColor(score);
-    const zone = loc.zone.replace('_',' ').split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
-    const isVisible = visibleAreas.has(loc.id);
-    
-    return `<div class="location-card ${isVisible ? '' : 'inactive'}" id="card-${loc.id}" style="position:relative;">
-      <div style="position:absolute; top:8px; left:8px;">
-        <input type="checkbox" id="area-cb-${loc.id}" ${isVisible ? 'checked' : ''} 
-          onchange="toggleArea('${loc.id}')" 
-          style="width:14px; height:14px; cursor:pointer;">
+function convexHull(pts){
+  if(pts.length<3)return pts;
+  const sorted=[...pts].sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lower=[]; for(const p of sorted){while(lower.length>=2&&cross(lower[lower.length-2],lower[lower.length-1],p)<=0)lower.pop();lower.push(p);}
+  const upper=[]; for(let i=sorted.length-1;i>=0;i--){const p=sorted[i];while(upper.length>=2&&cross(upper[upper.length-2],upper[upper.length-1],p)<=0)upper.pop();upper.push(p);}
+  upper.pop();lower.pop(); return lower.concat(upper);
+}
+
+// ================================================================
+// TABS
+// ================================================================
+function setTab(t){
+  ['zones','pincodes','wh','dist','studio'].forEach(id=>{
+    document.getElementById('tab-'+id).style.display=id===t?'':'none';
+    document.getElementById('t-'+id).classList.toggle('on',id===t);
+  });
+  if(t==='dist')buildDistTable();
+  if(t==='studio')initStudio();
+}
+
+// ================================================================
+// ZONES TAB
+// ================================================================
+const zState={score:'all',cov:'all'};
+function zfScore(v,el){zState.score=v;activateChip(el);buildZones();}
+function zfCov(v,el){zState.cov=v;activateChip(el);buildZones();}
+
+function activateChip(el){
+  el.closest('.filter-row').querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function buildZones(){
+  const maxS=Math.max(...ZONES.map(z=>zonePins(z).reduce((a,p)=>a+p.s,0)));
+  let html='',total=0;
+  ZONES.forEach(z=>{
+    let pins=zonePins(z);
+    if(zState.score!=='all'){
+      const r={critical:[70,999],high:[40,69.9],medium:[20,39.9],low:[0,19.9]}[zState.score];
+      pins=pins.filter(p=>p.s>=r[0]&&p.s<=r[1]);
+    }
+    if(zState.cov==='gap') pins=pins.filter(p=>!p.covered);
+    if(zState.cov==='s52') pins=pins.filter(p=>p.covS52);
+    if(zState.cov==='s84') pins=pins.filter(p=>p.covS84);
+    if(zState.cov==='bisrakh') pins=pins.filter(p=>p.wh==='bisrakh');
+    if(!pins.length)return;
+    total+=pins.length;
+    const ts=pins.reduce((a,p)=>a+p.s,0);
+    const th=pins.reduce((a,p)=>a+p.hh,0);
+    const pct=Math.min(100,(ts/maxS*100));
+    const pinRows=pins.sort((a,b)=>b.s-a.s).map(p=>`
+      <div class="zone-pin-row" onclick="flyToPin(${p.pc})">
+        <span class="zpn">${p.pc}</span>
+        <span class="zpa">${p.area.slice(0,18)}</span>
+        <span style="color:${scoreColor(p.s)};font-family:var(--mono);font-weight:700">${p.s}</span>
+        <span style="font-size:9px;color:${p.covered?'#2a9d3a':'#e03030'}">${p.covered?'✓':'✗'}</span>
+      </div>`).join('');
+    html+=`<div class="zone-card" id="zc-${z.id}" style="border-left:3px solid ${z.color}" onclick="toggleZoneExpand('${z.id}',event)">
+      <div class="zone-head">
+        <div class="zone-name">${z.label}</div>
+        <div class="zone-score-badge" style="background:${z.color}20;color:${z.color}">${ts.toFixed(0)}</div>
       </div>
-      <div style="padding-left:24px;" onclick="selectLocation_by_id('${loc.id}')">
-        <div class="location-zone">${zone}</div>
-        <div class="location-name">${loc.name}</div>
-        <div class="location-bars">
-          ${activePlatforms.blinkit ? `<div class="mini-bar">
-            <span class="mini-bar-label" style="color:#b8860b">BL</span>
-            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.B/5*100}%;background:#d4a017"></div></div>
-            <span class="mini-bar-num" style="color:#b8860b">${loc.B}</span>
-          </div>` : ''}
-          ${activePlatforms.zepto ? `<div class="mini-bar">
-            <span class="mini-bar-label" style="color:#6d28d9">ZP</span>
-            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.Z/5*100}%;background:#7c3aed"></div></div>
-            <span class="mini-bar-num" style="color:#6d28d9">${loc.Z}</span>
-          </div>` : ''}
-          ${activePlatforms.instamart ? `<div class="mini-bar">
-            <span class="mini-bar-label" style="color:#c2410c">IM</span>
-            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.I/5*100}%;background:#ea580c"></div></div>
-            <span class="mini-bar-num" style="color:#c2410c">${loc.I}</span>
-          </div>` : ''}
-          ${activePlatforms.flipkart ? `<div class="mini-bar">
-            <span class="mini-bar-label" style="color:#1d4ed8">FK</span>
-            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.F/5*100}%;background:#2563eb"></div></div>
-            <span class="mini-bar-num" style="color:#1d4ed8">${loc.F}</span>
-          </div>` : ''}
-          ${activePlatforms.jiomart ? `<div class="mini-bar">
-            <span class="mini-bar-label" style="color:#be185d">JM</span>
-            <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${loc.J/5*100}%;background:#db2777"></div></div>
-            <span class="mini-bar-num" style="color:#be185d">${loc.J}</span>
-          </div>` : ''}
-        </div>
+      <div class="zone-pins-label">${pins.length} pincodes · Avg ${(ts/pins.length).toFixed(1)} · ${pins.filter(p=>!p.covered).length} uncovered</div>
+      <div class="zone-bar-wrap"><div class="zone-bar" style="width:${pct}%;background:${z.color}"></div></div>
+      <div class="zone-stats">
+        <div class="zone-stat">HH ₹10L+ <span>${(th/1000).toFixed(0)}k</span></div>
+        <div class="zone-stat">Kids &lt;6 <span>${(pins.reduce((a,p)=>a+p.pop,0)/1000).toFixed(0)}k</span></div>
+        <div class="zone-stat">Ped <span>${pins.reduce((a,p)=>a+p.ped,0)}</span></div>
       </div>
-      <div class="location-total ${heatClass(score)}">${score}</div>
+      <div class="zone-pin-list" id="zpl-${z.id}">${pinRows}</div>
+    </div>`;
+  });
+  document.getElementById('zone-cards').innerHTML=html||'<div style="padding:20px;text-align:center;color:#aaa;font-size:12px">No pincodes match filter</div>';
+  document.getElementById('zf-count').innerHTML=`<b>${total}</b> pincodes shown`;
+}
+
+function zonePins(z){return PINS.filter(p=>z.pincodes.includes(p.pc));}
+
+function toggleZoneExpand(zid,e){
+  if(e.target.closest('.zone-pin-row'))return;
+  const list=document.getElementById('zpl-'+zid);
+  const open=list.classList.contains('open');
+  document.querySelectorAll('.zone-pin-list').forEach(l=>l.classList.remove('open'));
+  document.querySelectorAll('.zone-card').forEach(c=>c.classList.remove('active'));
+  if(!open){
+    list.classList.add('open');
+    document.getElementById('zc-'+zid).classList.add('active');
+    const z=ZONES.find(x=>x.id===zid);
+    const pins=PINS.filter(p=>z.pincodes.includes(p.pc));
+    if(pins.length){
+      const lats=pins.map(p=>p.lat),lngs=pins.map(p=>p.lng);
+      map.fitBounds([[Math.min(...lats)-0.02,Math.min(...lngs)-0.02],[Math.max(...lats)+0.02,Math.max(...lngs)+0.02]]);
+    }
+  }
+}
+
+// ================================================================
+// PINCODES TAB
+// ================================================================
+const pState={score:'all',cov:'all',sort:'score'};
+function pfScore(v,el){pState.score=v;activateChip(el);filterPins();}
+function pfCov(v,el){pState.cov=v;activateChip(el);filterPins();}
+function pinSort(v,el){pState.sort=v;el.closest('.sort-row').querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');filterPins();}
+
+function filterPins(){
+  const q=document.getElementById('pin-search').value.toLowerCase();
+  const zone=document.getElementById('pf-zone').value;
+  let data=[...PINS];
+  if(q)data=data.filter(p=>String(p.pc).includes(q)||p.area.toLowerCase().includes(q));
+  if(zone!=='all')data=data.filter(p=>p.geo===zone);
+  if(pState.score!=='all'){
+    const r={critical:[70,999],high:[40,69.9],medium:[20,39.9],low:[0,19.9]}[pState.score];
+    data=data.filter(p=>p.s>=r[0]&&p.s<=r[1]);
+  }
+  if(pState.cov==='gap')data=data.filter(p=>!p.covered);
+  if(pState.cov==='s52')data=data.filter(p=>p.covS52);
+  if(pState.cov==='s84')data=data.filter(p=>p.covS84);
+  if(pState.cov==='bisrakh')data=data.filter(p=>p.wh==='bisrakh');
+  const sorts={score:(a,b)=>b.s-a.s,hh:(a,b)=>b.hh-a.hh,ped:(a,b)=>b.ped-a.ped,pc:(a,b)=>a.pc-b.pc};
+  data.sort(sorts[pState.sort]);
+  document.getElementById('pin-count').innerHTML=`<b>${data.length}</b> of ${PINS.length}`;
+  const wb=(wh)=>whBadgeColor(wh);
+  document.getElementById('pin-tbody').innerHTML=data.map((p,i)=>{
+    const col=scoreColor(p.s); const w=wb(p.wh);
+    return `<tr onclick="flyToPin(${p.pc})">
+      <td style="color:#aaa">${i+1}</td>
+      <td class="pc">${p.pc}</td>
+      <td style="font-size:9px;color:#666">${p.area.slice(0,14)}</td>
+      <td><span class="score-pill" style="background:${col}20;color:${col}">${p.s}</span></td>
+      <td style="font-size:10px">${(p.hh/1000).toFixed(1)}k</td>
+      <td style="font-size:10px">${p.ped}</td>
+      <td><span class="wh-badge" style="background:${w.bg};color:${w.fg}">${w.text}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function flyToPin(pc){
+  const p=PINS.find(x=>x.pc===pc); if(!p)return;
+  map.panTo({lat:p.lat,lng:p.lng});map.setZoom(14);;
+  setTimeout(()=>{const m=pinMarkers[PINS.indexOf(p)];if(m)m.openPopup();},1300);
+}
+
+// ================================================================
+// WH SITES TAB
+// ================================================================
+const whState={overlap:'all',sort:'score'};
+function whfOverlap(v,el){whState.overlap=v;activateChip(el);buildWHPanel();}
+function whSort(v,el){whState.sort=v;el.closest('.sort-row').querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');buildWHPanel();}
+
+function buildExistingWHPanel(){
+  document.getElementById('existing-wh-panel').innerHTML=`
+    <div style="background:#f0f8ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px">
+      <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:5px">🎯 40 Min TAT Exercise</div>
+      <div style="font-size:11px;color:#3b82f6;line-height:1.6">
+        Fresh start — no existing WHs assumed.<br>
+        Radius: <b>13km = 40 min</b> @ 20km/h NCR avg speed.<br>
+        Algorithm found: <b>7 WHs = 100% coverage</b> of all 80 pincodes.<br>
+        Click each WH below to see its 13km radius + covered pincodes.
+      </div>
+    </div>
+  `;
+}
+
+
+function focusExistingWH(id){
+  const wh=WH_EXISTING.find(w=>w.id===id); if(!wh)return;
+  map.panTo({lat:wh.lat,lng:wh.lng});map.setZoom(13);;
+  const covPins=PINS.filter(p=>hav({lat:p.lat,lng:p.lng},wh)<=DELIVERY_RADIUS).sort((a,b)=>b.s-a.s);
+  showDetailPanel(wh,covPins);
+}
+
+
+function buildWHPanel(){
+  const sort = whState.sort;
+  let data = [...CANDIDATE_WHS];
+  if(sort==='score') data.sort((a,b)=>b.scoreGain-a.scoreGain);
+  if(sort==='net') data.sort((a,b)=>b.netNew-a.netNew);
+  if(sort==='gain') data.sort((a,b)=>b.scoreGain-a.scoreGain);
+
+  const totalActive = CANDIDATE_WHS.filter(w=>w.active).length + WH_EXISTING.length;
+  document.getElementById('wh-count').innerHTML=`<b>${CANDIDATE_WHS.filter(w=>w.active).length}</b> candidates active`;
+
+  document.getElementById('wh-panel').innerHTML=data.map(wh=>{
+    const covPins=PINS.filter(p=>hav({lat:p.lat,lng:p.lng},wh)<=DELIVERY_RADIUS);
+    const existCov=0;
+    const netNew=covPins.length-existCov;
+    return `<div id="whcard-${wh.id}" onclick="toggleCandidateWH('${wh.id}')" style="background:${wh.active?'#f0edff':'#f8f9ff'};border:${wh.active?'1.5px solid #5c35e8':'1px solid #e8ecf2'};border-left:3px solid ${wh.col};border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;position:relative">
+      <div style="position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;background:${wh.active?'#5c35e8':'transparent'};border:2px solid ${wh.active?'#5c35e8':'#d8dce8'};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff">${wh.active?'✓':''}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${wh.col}"></div>
+        <div style="font-size:12px;font-weight:700;color:#111">${wh.name}</div>
+        <span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${wh.col}20;color:${wh.col};font-weight:700">${wh.rank}</span>
+      </div>
+      <div style="font-size:10px;color:#aaa;font-family:var(--mono);margin-bottom:5px">${wh.lat.toFixed(4)}, ${wh.lng.toFixed(4)}</div>
+      <div style="font-size:10px;color:#555;line-height:1.5;margin-bottom:8px">${wh.reason}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div style="background:#fff;border-radius:5px;padding:5px 8px"><div style="font-size:13px;font-weight:800;font-family:var(--mono);color:${wh.col}">${travelCache[wh.id]?PINS.filter(p=>isWithinTAT(wh.id,p.pc)).length:covPins.length}</div><div style="font-size:8px;color:#aaa;text-transform:uppercase">${travelCache[wh.id]?'40min Pins':'Est. Pins'}</div></div>
+        <div style="background:#fff;border-radius:5px;padding:5px 8px"><div style="font-size:13px;font-weight:800;font-family:var(--mono);color:#111">+${wh.scoreGain}</div><div style="font-size:8px;color:#aaa;text-transform:uppercase">Score Gain</div></div>
+        <div style="background:#fff;border-radius:5px;padding:5px 8px"><div style="font-size:13px;font-weight:800;font-family:var(--mono);color:#111">${wh.netNew}</div><div style="font-size:8px;color:#aaa;text-transform:uppercase">Net New</div></div>
+      </div>
+      ${travelCache[wh.id]?'<div style="margin-top:4px;font-size:9px;color:#2a9d3a;font-weight:700">✓ Real road times loaded</div>':'<div style="margin-top:4px;font-size:9px;color:#aaa">Click to load real OSRM road times</div>'}
+      ${wh.active?`<div style="margin-top:6px;font-size:9px;color:#5c35e8;font-weight:700">✓ Active — lines shown on map · Click again to deactivate</div>`:'<div style="margin-top:6px;font-size:9px;color:#aaa">Click to activate → see 13km (40min) coverage on map</div>'}
+    </div>`;
+  }).join('');
+  updateCoverageBar();
+  renderMotherDistances();
+}
+
+function whSortCand(v,el){
+  whState.sort=v;
+  el.closest('.sort-row').querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  buildWHPanel();
+}
+
+
+function isCoveredByActive(pin){
+  return CANDIDATE_WHS.filter(w=>w.active).some(wh=>isWithinTAT(wh.id,pin.pc));
+}
+
+async function toggleCandidateWH(id){
+  const wh=CANDIDATE_WHS.find(w=>w.id===id); if(!wh)return;
+  wh.active=!wh.active;
+
+  // Remove old layers for this WH
+  if(candidateMapMarkers[id]){
+    const cm = candidateMapMarkers[id];
+    if(cm.circle) cm.circle.setMap(null);
+    if(cm.lines)  cm.lines.forEach(l=>l.setMap(null));
+    if(cm.marker) cm.marker.setMap(null);
+    if(cm.pinLabels) cm.pinLabels.forEach(l=>l.setMap(null));
+    delete candidateMapMarkers[id];
+  }
+
+  if(wh.active){
+    // Loading state
+    setStatusMsg(`⏳ Loading real road times for ${wh.rank} ${wh.shortName}...`);
+    buildWHPanel();
+
+    // Fetch OSRM real road times
+    await fetchTravelTimes(wh);
+    setStatusMsg('');
+
+    // Covered pins = within 40 min real road time
+    const covPins = PINS.filter(p=>isWithinTAT(wh.id,p.pc)).sort((a,b)=>b.s-a.s);
+    const totalScore = covPins.reduce((a,p)=>a+p.s,0);
+
+    // ── WH Marker (big, labeled) ──────────────────────────────
+    const cSvg=encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42"><circle cx="21" cy="21" r="19" fill="'+wh.col+'" stroke="white" stroke-width="3"/><text x="21" y="25" text-anchor="middle" font-family="Arial" font-size="10" font-weight="900" fill="white">'+wh.rank+'</text></svg>');
+    const marker=new google.maps.Marker({map,position:{lat:wh.lat,lng:wh.lng},icon:{url:'data:image/svg+xml;charset=UTF-8,'+cSvg,scaledSize:new google.maps.Size(42,42),anchor:new google.maps.Point(21,21)},zIndex:1000,title:wh.name});
+    marker.addListener('click',()=>{infoWindow.setContent('<div style="font-family:Syne,sans-serif;min-width:200px;padding:4px"><b style="color:'+wh.col+';font-size:13px">'+wh.name+'</b><div style="font-size:10px;color:#666;margin:4px 0">40 min TAT · '+covPins.length+' pincodes · Score '+totalScore.toFixed(0)+'</div></div>');infoWindow.open(map,marker);});
+
+    // ── Coverage Circle (filled, prominent) ───────────────────
+    // Approximate 40-min isochrone radius visually
+    const circle=new google.maps.Circle({map,center:{lat:wh.lat,lng:wh.lng},radius:DELIVERY_RADIUS*1000,fillColor:wh.col,fillOpacity:0.10,strokeColor:wh.col,strokeOpacity:0.7,strokeWeight:2.5});
+
+    // ── Lines WH → each covered pincode ──────────────────────
+    // Color by actual travel time
+    const lines = covPins.map(p=>{
+      const mins = getTravelTime(wh.id, p.pc);
+      const km   = hav({lat:wh.lat,lng:wh.lng},{lat:p.lat,lng:p.lng});
+      const lc   = mins<=20?'#2a9d3a': mins<=30?'#e07020': '#e03030';
+      const lw   = p.s>=60?2.5: p.s>=40?2: 1.2;
+
+      const line=new google.maps.Polyline({map,path:[{lat:wh.lat,lng:wh.lng},{lat:p.lat,lng:p.lng}],geodesic:true,strokeColor:lc,strokeOpacity:0.65,strokeWeight:lw});
+      line.addListener('mouseover',ev=>{infoWindow.setContent('<b>'+p.pc+'</b> · '+p.area+'<br>🕐 <b style="color:'+lc+'">'+mins+' min</b> · 📍 '+km.toFixed(1)+'km · ⭐ '+p.s);infoWindow.setPosition(ev.latLng);infoWindow.open(map);});
+      return line;
+    });
+
+    // ── Pincode labels on map for covered pins ────────────────
+    const pinLabels = covPins.map(p=>{
+      const mins = getTravelTime(wh.id, p.pc);
+      const lc   = mins<=20?'#2a9d3a': mins<=30?'#e07020': '#e03030';
+      const shortArea=p.area.length>12?p.area.slice(0,12)+'…':p.area;
+      const tCol=lc==='#2a9d3a'?'#00cc44':lc==='#e07020'?'#ffaa00':'#ff4444';
+      const svg2=encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="90" height="34"><rect rx="4" ry="4" width="90" height="34" fill="${wh.col}" opacity="0.92"/><text x="45" y="13" text-anchor="middle" font-family="monospace" font-size="9" font-weight="700" fill="white">${p.pc} <tspan fill="${tCol}">${mins}m</tspan></text><text x="45" y="27" text-anchor="middle" font-family="Arial" font-size="8" fill="rgba(255,255,255,0.85)">${shortArea}</text></svg>`);
+      return new google.maps.Marker({map,position:{lat:p.lat,lng:p.lng},icon:{url:`data:image/svg+xml;charset=UTF-8,${svg2}`,scaledSize:new google.maps.Size(90,34),anchor:new google.maps.Point(45,17)},zIndex:500,clickable:false});
+    });
+
+    candidateMapMarkers[id] = {marker, circle, lines, pinLabels};
+    showDetailPanel(wh, covPins);
+
+    // Fit map to show WH + all covered pins
+    const bounds2=new google.maps.LatLngBounds();
+    bounds2.extend({lat:wh.lat,lng:wh.lng});
+    covPins.forEach(p=>bounds2.extend({lat:p.lat,lng:p.lng}));
+    map.fitBounds(bounds2);
+    if(map.getZoom()>13)map.setZoom(13);
+  } else {
+    hideDetailPanel();
+  }
+
+  buildWHPanel();
+  refreshAllPinMarkers();
+}
+
+function setStatusMsg(msg){
+  let el=document.getElementById('status-msg');
+  if(!el){el=document.createElement('div');el.id='status-msg';el.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;z-index:9999;font-family:var(--font);display:none';document.body.appendChild(el);}
+  el.textContent=msg;el.style.display=msg?'block':'none';
+}
+
+function showDetailPanel(wh, covPins){
+  const panel=document.getElementById('detail-panel');
+  panel.style.display='block';
+  const ts=covPins.reduce((a,p)=>a+p.s,0);
+  const existCov=0;
+  document.getElementById('detail-title').innerHTML=
+    `<span style="color:${wh.col}">📍 ${wh.name}</span>
+     <span style="font-size:10px;font-weight:400;color:#666"> · ${covPins.length} pincodes · ${covPins.length-existCov} net new · Score ${ts.toFixed(0)}</span>`;
+  document.getElementById('detail-pins').innerHTML=covPins.map(p=>{
+    const d=hav({lat:p.lat,lng:p.lng},wh);
+    const dc=d<=5?'#2a9d3a':d<=8?'#e07020':'#e03030';
+    const alreadyCov=false;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:#fff;border-radius:5px;font-size:11px;cursor:pointer" onclick="map.panTo({lat:${p.lat},lng:${p.lng}});map.setZoom(14);">
+      <span style="font-family:var(--mono);font-weight:700;color:#111">${p.pc}</span>
+      <span style="color:#666;font-size:10px;flex:1;margin:0 6px">${p.area}</span>
+      <span style="font-family:var(--mono);font-weight:700;color:${scoreColor(p.s)};margin-right:6px">${p.s}</span>
+      <span style="font-family:var(--mono);color:${dc};font-size:10px;font-weight:700">${d}km</span>
+      ${alreadyCov?'<span style="font-size:8px;color:#aaa;margin-left:4px">dup</span>':''}
     </div>`;
   }).join('');
 }
 
-function updateInsights() {
-  const r5 = 5, r10 = 10;
-  
-  // For each location, find how many stores (from active platforms) are within r5 and r10
-  function storesInRadius(center, r) {
-    let total = 0;
-    LOCATIONS.forEach(loc => {
-      if (dist(center, loc) <= r) total += getScore(loc);
-    });
-    return total;
-  }
-  
-  function bzInRadius(center, r) {
-    let total = 0;
-    LOCATIONS.forEach(loc => {
-      if (dist(center, loc) <= r) {
-        if (activePlatforms.blinkit) total += loc.B;
-        if (activePlatforms.zepto)   total += loc.Z;
-      }
-    });
-    return total;
-  }
-  
-  const d5 = LOCATIONS.map(l => ({ name: l.name, score: storesInRadius(l, r5) })).sort((a,b)=>b.score-a.score)[0];
-  const d10 = LOCATIONS.map(l => ({ name: l.name, score: storesInRadius(l, r10) })).sort((a,b)=>b.score-a.score)[0];
-  const bz5 = LOCATIONS.map(l => ({ name: l.name, score: bzInRadius(l, r5) })).sort((a,b)=>b.score-a.score)[0];
-  const bz10 = LOCATIONS.map(l => ({ name: l.name, score: bzInRadius(l, r10) })).sort((a,b)=>b.score-a.score)[0];
-  
-  // Gap: lowest total coverage
-  const gap = [...LOCATIONS].sort((a,b) => totalAll(a) - totalAll(b))[0];
-  
-  document.getElementById('ins-dense5').textContent = d5.name;
-  document.getElementById('ins-dense5-sub').textContent = `${d5.score} stores within 5km radius`;
-  document.getElementById('ins-dense10').textContent = d10.name;
-  document.getElementById('ins-dense10-sub').textContent = `${d10.score} stores within 10km radius`;
-  document.getElementById('ins-bz5').textContent = bz5.name;
-  document.getElementById('ins-bz5-sub').textContent = `${bz5.score} Blinkit+Zepto within 5km`;
-  document.getElementById('ins-bz10').textContent = bz10.name;
-  document.getElementById('ins-bz10-sub').textContent = `${bz10.score} Blinkit+Zepto within 10km`;
-  document.getElementById('ins-gap').textContent = gap.name;
-  document.getElementById('ins-gap-sub').textContent = `Only ${totalAll(gap)} total stores — OZI first mover advantage`;
+function hideDetailPanel(){
+  const p=document.getElementById('detail-panel'); if(p)p.style.display='none';
 }
 
-function updateZoneTotals() {
-  const zones = ['hauz_khas','gk','saket','def_col'];
-  zones.forEach(z => {
-    const locs = LOCATIONS.filter(l => l.zone === z);
-    const total = locs.reduce((acc, l) => acc + getScore(l), 0);
-    const el = document.getElementById('zt-' + z);
-    if (el) el.textContent = total;
+function refreshAllPinMarkers(){
+  pinMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});
+  pinMarkers=PINS.map(p=>{
+    const cov=isCoveredByActive(p);
+    const r=p.s>=70?12:p.s>=40?9:p.s>=20?6:4;
+    const col=scoreColor(p.s);
+    const borderCol=cov?'#5c35e8':'#e03030';
+    const bw=p.s>=40?'2.5px':'1.5px';
+    const m=new google.maps.Marker({map,position:{lat:p.lat,lng:p.lng},icon:{path:google.maps.SymbolPath.CIRCLE,fillColor:col,fillOpacity:0.9,strokeColor:cov?'#5c35e8':'#e03030',strokeWeight:p.s>=40?2.5:1.5,scale:r},zIndex:p.s>=70?10:5,title:String(p.pc)+' '+p.area});
+    m.addListener('click',()=>{infoWindow.setContent('<div style="font-family:Syne,sans-serif;min-width:210px;padding:4px"><div style="font-size:14px;font-weight:800">'+p.area+'</div><div style="font-size:11px;color:#aaa;margin-bottom:8px">'+p.pc+' · '+p.geo+'</div><div style="font-size:11px;color:#555">Score: '+p.s+' · HH: '+(p.hh/1000).toFixed(1)+'k · Ped: '+p.ped+'</div></div>');infoWindow.open(map,m);});
+    return m;
   });
 }
 
-function updatePlatformCounts() {
-  const totals = { blinkit:0, zepto:0, instamart:0, flipkart:0, jiomart:0 };
-  LOCATIONS.forEach(l => {
-    totals.blinkit += l.B; totals.zepto += l.Z; totals.instamart += l.I;
-    totals.flipkart += l.F; totals.jiomart += l.J;
-  });
-  document.getElementById('cnt-blinkit').textContent = totals.blinkit;
-  document.getElementById('cnt-zepto').textContent = totals.zepto;
-  document.getElementById('cnt-instamart').textContent = totals.instamart;
-  document.getElementById('cnt-flipkart').textContent = totals.flipkart;
-  document.getElementById('cnt-jiomart').textContent = totals.jiomart;
+function updateCoverageBar(){
+  const covPins=PINS.filter(p=>isCoveredByActive(p));
+  const covScore=covPins.reduce((a,p)=>a+p.s,0);
+  const totalScore=PINS.reduce((a,p)=>a+p.s,0);
+  const pct=Math.round(100*covPins.length/PINS.length);
+  const sPct=Math.round(100*covScore/totalScore);
+  document.getElementById('cov-pct').textContent=pct+'%';
+  document.getElementById('cov-bar').style.width=pct+'%';
+  document.getElementById('cov-pins').textContent=covPins.length+'/'+PINS.length;
+  document.getElementById('cov-score').textContent=covScore.toFixed(0)+'/'+totalScore.toFixed(0)+' ('+sPct+'%)';
+  document.getElementById('cov-whs').textContent=CANDIDATE_WHS.filter(w=>w.active).length+'/7';
 }
 
-// ============================================================
-// INTERACTIONS
-// ============================================================
-function selectLocation(loc) {
-  if (currentSelected) {
-    const old = document.getElementById('card-' + currentSelected.id);
-    if (old) old.classList.remove('selected');
+function toggleMotherWH(){
+  motherWHVisible=!motherWHVisible;
+  const btn=document.getElementById('mother-btn');
+  if(motherWHVisible){
+    const mSvg=encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><circle cx="22" cy="22" r="20" fill="#f59e0b" stroke="white" stroke-width="3"/><text x="22" y="28" text-anchor="middle" font-size="18">🏭</text></svg>`);
+    motherMapMarker=new google.maps.Marker({map,position:{lat:MOTHER_WH.lat,lng:MOTHER_WH.lng},icon:{url:`data:image/svg+xml;charset=UTF-8,${mSvg}`,scaledSize:new google.maps.Size(44,44),anchor:new google.maps.Point(22,22)},zIndex:1000});
+    motherMapMarker.addListener('click',()=>{infoWindow.setContent(`<b style="color:#92400e">Mother WH — Okhla/NH-44</b><br><span style="font-size:10px;color:#aaa">Central replenishment hub</span>`);infoWindow.open(map,motherMapMarker);});
+    // Lines to all active WHs
+    const allActive=CANDIDATE_WHS.filter(w=>w.active);
+    motherMapLines=allActive.map(wh=>{
+      const line=new google.maps.Polyline({map,path:[{lat:MOTHER_WH.lat,lng:MOTHER_WH.lng},{lat:wh.lat,lng:wh.lng}],strokeColor:'#f59e0b',strokeOpacity:0.7,strokeWeight:2,geodesic:true});
+      return line;
+    });
+    map.panTo({lat:MOTHER_WH.lat,lng:MOTHER_WH.lng});map.setZoom(11);;
+    btn.textContent='Hide'; btn.style.background='#fef3c7';
+  } else {
+    if(motherMapMarker){if(motherMapMarker)motherMapMarker.setMap(null);motherMapMarker=null;}
+    motherMapLines.forEach(l=>{try{l.setMap(null);}catch(e){}}); motherMapLines=[];
+    btn.textContent='Show on map'; btn.style.background='#fff';
   }
-  currentSelected = loc;
-  const card = document.getElementById('card-' + loc.id);
-  if (card) {
-    card.classList.add('selected');
-    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderMotherDistances(){
+  const el=document.getElementById('mother-dists'); if(!el)return;
+  const allActive=CANDIDATE_WHS.filter(w=>w.active);
+  el.innerHTML=allActive.map(wh=>{
+    const d=hav(MOTHER_WH,wh);
+    return `<div style="display:flex;justify-content:space-between;font-size:10px;margin:2px 0">
+      <span style="color:${wh.col}">● ${wh.name.slice(0,24)}</span>
+      <span style="font-family:var(--mono);font-weight:700;color:#92400e">${d}km</span>
+    </div>`;
+  }).join('');
+}
+
+function flyToWH(rank){
+  const wh=WH_NEW.find(w=>w.rank===rank); if(!wh)return;
+  document.querySelectorAll('.wh-card').forEach(c=>c.classList.remove('active'));
+  document.getElementById('whc-'+rank)?.classList.add('active');
+  map.panTo({lat:wh.lat,lng:wh.lng});map.setZoom(12);;
+}
+
+// ================================================================
+// DISTANCE TAB
+// ================================================================
+const dtState={cov:'all',sort:'s52'};
+function dtCov(v,el){dtState.cov=v;activateChip(el);buildDistTable();}
+function dtSort(v,el){dtState.sort=v;el.closest('.sort-row').querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');buildDistTable();}
+
+function buildDistTable(){
+  let data=[...PINS];
+  if(dtState.cov==='covered')data=data.filter(p=>p.covered);
+  if(dtState.cov==='gap')data=data.filter(p=>!p.covered);
+  if(dtState.cov==='near')data=data.filter(p=>!p.covered&&(p.ds52<=20||p.ds84<=20||p.db<=20));
+  const sortFns={s52:(a,b)=>a.ds52-b.ds52,s84:(a,b)=>a.ds84-b.ds84,bisrakh:(a,b)=>a.db-b.db,score:(a,b)=>b.s-a.s};
+  data.sort(sortFns[dtState.sort]);
+  document.getElementById('dt-count').innerHTML=`<b>${data.length}</b> pincodes`;
+  document.getElementById('dist-tbody').innerHTML=data.map(p=>{
+    const col=scoreColor(p.s);
+    const c52=p.ds52<=10?'#2a9d3a':p.ds52<=20?'#e07020':'#aaa';
+    const c84=p.ds84<=10?'#2a9d3a':p.ds84<=20?'#e07020':'#aaa';
+    const cb=p.db<=10?'#2a9d3a':p.db<=20?'#e07020':'#aaa';
+    return `<tr onclick="flyToPin(${p.pc})">
+      <td class="pc">${p.pc}</td>
+      <td style="font-size:9px">${p.area.slice(0,12)}</td>
+      <td><span class="score-pill" style="background:${col}20;color:${col}">${p.s}</span></td>
+      <td style="font-family:var(--mono);color:${c52};font-size:10px">${p.ds52}</td>
+      <td style="font-family:var(--mono);color:${c84};font-size:10px">${p.ds84}</td>
+      <td style="font-family:var(--mono);color:${cb};font-size:10px">${p.db}</td>
+    </tr>`;
+  }).join('');
+}
+
+function calcDist(){
+  const fv=document.getElementById('d-from').value.trim();
+  const tv=document.getElementById('d-to').value.trim();
+  const res=document.getElementById('dist-result');
+  function parse(v){
+    const shortcuts={sec52:{lat:28.521,lng:77.085,label:'WH Sec52'},sec84:{lat:28.406,lng:77.071,label:'WH Sec84'},bisrakh:{lat:28.546,lng:77.52,label:'WH Bisrakh'},wh1:{lat:28.521,lng:77.085,label:'WH Sec52'},wh2:{lat:28.406,lng:77.071,label:'WH Sec84'},wh3:{lat:28.546,lng:77.52,label:'WH Bisrakh'}};
+    if(shortcuts[v.toLowerCase()])return shortcuts[v.toLowerCase()];
+    const pc=parseInt(v); if(!isNaN(pc)&&v.length<=6){const p=PINS.find(x=>x.pc===pc);if(p)return{lat:p.lat,lng:p.lng,label:p.area+' ('+pc+')'};}
+    const pts=v.split(',').map(x=>parseFloat(x.trim())); if(pts.length===2&&!isNaN(pts[0]))return{lat:pts[0],lng:pts[1],label:v};
+    return null;
   }
+  const a=parse(fv),b=parse(tv);
+  if(!a){res.innerHTML='<span style="color:#e03030">Cannot parse "From"</span>';return;}
+  if(!b){res.innerHTML='<span style="color:#e03030">Cannot parse "To"</span>';return;}
+  const d=hav(a,b); const t=Math.round(d/0.35);
+  res.innerHTML=`<span class="big">${d} km</span>${a.label} → ${b.label}<br><br><span style="color:#aaa">Est. time ≈ </span><span style="color:#5c35e8;font-weight:700">${t} min</span><br><span style="color:${d<=10?'#2a9d3a':'#e07020'}">${d<=10?'✓ Within 13km (40min)':'⚠ Outside 13km (40min) range'}</span>`;
   
-  map.setView([loc.lat, loc.lng], 15, { animate: true });
-  
-  if (circleLayer) circleLayer.remove();
-  const R = activeRadius > 0 ? activeRadius * 1000 : 5000;
-  circleLayer = L.circle([loc.lat, loc.lng], {
-    radius: R, color: '#f0c027', weight: 1.5,
-    fillColor: '#f0c027', fillOpacity: 0.06, dashArray: '6,4'
-  }).addTo(map);
+  if(window._dl)window._dl.setMap(null);
+  window._dl=new google.maps.Polyline({map,path:[{lat:a.lat,lng:a.lng},{lat:b.lat,lng:b.lng}],strokeColor:'#5c35e8',strokeOpacity:0.8,strokeWeight:2,geodesic:true});
+  const db=new google.maps.LatLngBounds();
+  db.extend({lat:a.lat,lng:a.lng});db.extend({lat:b.lat,lng:b.lng});
+  map.fitBounds(db);
 }
 
-function selectLocation_by_id(id) {
-  const loc = LOCATIONS.find(l => l.id === id);
-  if (loc) selectLocation(loc);
-}
+// ================================================================
+// STUDIO
+// ================================================================
+let studioMode='zone',activePins=[],customZones=[],customWHPoints=[];
+let studioMarkers=[],studioWHMarkers=[],studioLines=[];
+let studioInitDone=false,czId=1,cwId=1;
 
-function togglePlatform(platform) {
-  activePlatforms[platform] = !activePlatforms[platform];
-  const el = document.querySelector(`[data-platform="${platform}"]`);
-  el.classList.toggle('active', activePlatforms[platform]);
-  el.classList.toggle('inactive', !activePlatforms[platform]);
-  renderAll();
-}
-
-function toggleZoneFilter(zone) {
-  activeZones[zone] = !activeZones[zone];
-  const el = document.querySelector(`[data-zone="${zone}"]`);
-  el.classList.toggle('active', activeZones[zone]);
-  el.classList.toggle('inactive', !activeZones[zone]);
-  
-  // Update visible areas based on zone
-  LOCATIONS.forEach(loc => {
-    if (loc.zone === zone) {
-      if (activeZones[zone]) {
-        visibleAreas.add(loc.id);
-      } else {
-        visibleAreas.delete(loc.id);
+function initStudio(){
+  if(studioInitDone)return; studioInitDone=true;
+  // Drawing managed via click events
+  // draw:created handled via click; keep for reference
+  if(false){map.addListener('draw:created',function(e){
+    const layer=e.layer,type=e.layerType;
+    if(type==='polyline'){
+      const ll=layer.getLatLngs(); if(ll.length>=2){
+        const d=hav({lat:ll[0].lat,lng:ll[0].lng},{lat:ll[ll.length-1].lat,lng:ll[ll.length-1].lng});
+        const t=Math.round(d/0.35);
+        layer.bindTooltip(`<b>${d} km</b><br>${t} min`,{permanent:true,direction:'center',className:'draw-dist-tip'});
+        window._drawItems.addLayer(layer); setDrawHint(`📏 ${d} km · ~${t} min`);
       }
     }
+    if(type==='polygon'){
+      const ll=layer.getLatLngs()[0];
+      const inside=PINS.filter(p=>isPointInPolygon([p.lat,p.lng],ll));
+      const ts=inside.reduce((a,p)=>a+p.s,0);
+      const col=document.getElementById('zone-color-pick').value||'#5c35e8';
+      layer.setStyle({color:col,fillColor:col,fillOpacity:0.1,weight:2});
+      inside.forEach(p=>addPinToActive(p));
+      layer.bindTooltip(`${inside.length} pins · ${ts.toFixed(0)}`,{permanent:true,className:'draw-dist-tip'});
+      window._drawItems.addLayer(layer);
+      setDrawHint(`⬡ ${inside.length} pincodes captured · Score ${ts.toFixed(0)}`);
+      const ni=document.getElementById('zone-name-input'); if(ni&&!ni.value)ni.value='Drawn Zone';
+    }
+    setStudioMode('off',document.getElementById('mode-off'));
+  }); } // end if(false)
+  map.addListener('click',function(e){
+    if(studioMode==='off'||studioMode==='line'||studioMode==='poly')return;
+    const lat=+e.latLng.lat().toFixed(5),lng=+e.latLng.lng().toFixed(5);
+    if(studioMode==='zone'){
+      let nearest=null,minD=999;
+      PINS.forEach(p=>{const d=hav({lat:p.lat,lng:p.lng},{lat,lng});if(d<minD){minD=d;nearest=p;}});
+      if(nearest&&minD<2){addPinToActive(nearest);setDrawHint('📍 '+nearest.pc+' ('+nearest.area+') '+minD.toFixed(1)+'km');}
+      else{addPinToActive({pc:null,lat,lng,area:'Custom',s:0,label:lat+','+lng});setDrawHint('📍 Custom point: '+lat+','+lng);}
+    } else if(studioMode==='wh'){addCustomWH(lat,lng);}
   });
-  
-  renderAll();
 }
 
-function toggleArea(areaId) {
-  if (visibleAreas.has(areaId)) {
-    visibleAreas.delete(areaId);
-  } else {
-    visibleAreas.add(areaId);
+function setStudioMode(mode,el){
+  studioMode=mode;
+  document.querySelectorAll('#tab-studio .chip').forEach(c=>c.classList.remove('on'));
+  if(el)el.classList.add('on');
+
+  if(!studioInitDone)initStudio();
+  if(!window._drawItems)window._drawItems=new google.maps.MVCArray();
+  const hints={zone:'📍 Click map — snaps to nearest pincode (2km)',wh:'🏭 Click to place WH — distances auto-draw',line:'📏 Click start → end → double-click finish',poly:'⬡ Click polygon corners → double-click to close',off:'✋ Pan mode'};
+  setDrawHint(hints[mode]||'');
+  // Drawing via map clicks (Leaflet.Draw removed)
+}
+
+function setDrawHint(msg){const el=document.getElementById('draw-hint');if(el)el.textContent=msg;}
+function clearDrawings(){studioLines.forEach(l=>{try{l.setMap(null);}catch(e){}});studioLines=[];setDrawHint('Drawings cleared');}
+
+function isPointInPolygon(pt,poly){
+  let inside=false; const n=poly.length;
+  for(let i=0,j=n-1;i<n;j=i++){
+    // poly items can be {lat,lng} objects or arrays
+    const xi=poly[i].lat||poly[i][0], yi=poly[i].lng||poly[i][1];
+    const xj=poly[j].lat||poly[j][0], yj=poly[j].lng||poly[j][1];
+    if(((yi>pt[1])!==(yj>pt[1]))&&(pt[0]<(xj-xi)*(pt[1]-yi)/(yj-yi)+xi))inside=!inside;
   }
-  
-  const checkbox = document.getElementById('area-cb-' + areaId);
-  if (checkbox) checkbox.checked = visibleAreas.has(areaId);
-  
-  renderAll();
+  return inside;
 }
 
-function searchAreas(query) {
-  query = query.toLowerCase().trim();
-  
-  if (!query) {
-    // Show all areas in active zones
-    LOCATIONS.forEach(loc => {
-      if (activeZones[loc.zone]) visibleAreas.add(loc.id);
-    });
-  } else {
-    // Filter by search
-    LOCATIONS.forEach(loc => {
-      if (loc.name.toLowerCase().includes(query)) {
-        visibleAreas.add(loc.id);
-      } else {
-        visibleAreas.delete(loc.id);
-      }
-    });
+function addPinToActive(pin){
+  const key=pin.pc||pin.label; if(activePins.find(p=>(p.pc||p.label)===key))return;
+  activePins.push(pin); renderActivePins();
+  const col=document.getElementById('zone-color-pick').value||'#5c35e8';
+  const m=new google.maps.Marker({map,position:{lat:pin.lat,lng:pin.lng},icon:{path:google.maps.SymbolPath.CIRCLE,fillColor:col,fillOpacity:0.8,strokeColor:'#fff',strokeWeight:2,scale:8},zIndex:800});
+  m._sp=key; studioMarkers.push(m);
+}
+
+function removeActivePin(key){
+  activePins=activePins.filter(p=>(p.pc||p.label)!==key);
+  const m=studioMarkers.find(m=>m._sp===key); if(m)m.setMap(null);
+  studioMarkers=studioMarkers.filter(m=>m._sp!==key); renderActivePins();
+}
+
+function renderActivePins(){
+  const col=document.getElementById('zone-color-pick').value||'#5c35e8';
+  const preview=document.getElementById('zone-pins-preview');
+  if(!activePins.length){preview.innerHTML='<span style="font-size:10px;color:#bbb" id="zone-pins-empty">No pins — click map or type pincode</span>';return;}
+  preview.innerHTML=activePins.map(p=>{
+    const key=p.pc||p.label;
+    return `<div class="active-pin-tag" style="background:${col}20;color:${col}" onclick="removeActivePin('${key}')">
+      ${p.pc?p.pc+' '+p.area.slice(0,12):p.label} <span style="color:#aaa;font-size:11px">✕</span>
+    </div>`;
+  }).join('');
+}
+
+function addPincodeToZone(){
+  const input=document.getElementById('zone-pc-input');
+  const pc=parseInt(input.value.trim());
+  const pin=PINS.find(p=>p.pc===pc);
+  if(pin){addPinToActive(pin);input.value='';map.panTo({lat:pin.lat,lng:pin.lng});map.setZoom(13);;setDrawHint('✓ Added '+pc+' ('+pin.area+')');}
+  else{setDrawHint('✗ Pincode '+input.value+' not found');}
+}
+
+function clearActivePins(){activePins=[];studioMarkers.forEach(m=>{try{m.setMap(null);}catch(e){}});studioMarkers=[];renderActivePins();}
+
+function saveCustomZone(){
+  const name=document.getElementById('zone-name-input').value.trim()||'Zone '+czId;
+  const color=document.getElementById('zone-color-pick').value||'#5c35e8';
+  if(!activePins.length){setDrawHint('✗ Add pins first');return;}
+  const ts=activePins.reduce((a,p)=>a+(p.s||0),0);
+  const z={id:'cz'+czId++,name,color,pins:[...activePins],score:ts.toFixed(1)};
+  customZones.push(z);
+  if(activePins.length>=3){
+    const hull=convexHull(activePins.map(p=>[p.lat,p.lng]));
+    const poly=new google.maps.Polygon({map,paths:hull.map(h=>({lat:h[0],lng:h[1]})),fillColor:color,fillOpacity:0.10,strokeColor:color,strokeWeight:1.5,strokeOpacity:0.7});
+    poly._czId=z.id; studioLines.push(poly);
   }
-  
-  renderAll();
+  studioMarkers.forEach(m=>{m.setStyle({opacity:0.4,fillOpacity:0.3});});studioMarkers=[];
+  activePins=[];document.getElementById('zone-name-input').value='';
+  renderActivePins();renderCustomZones();setDrawHint('✅ Zone "'+name+'" saved · '+z.pins.length+' pins · Score '+ts.toFixed(0));
 }
 
-function setRadius(r) {
-  activeRadius = r;
-  document.getElementById('btn-5').classList.toggle('active', r === 5);
-  document.getElementById('btn-10').classList.toggle('active', r === 10);
-  document.getElementById('btn-all').classList.toggle('active', r === 0);
-  
-  if (circleLayer) { circleLayer.remove(); circleLayer = null; }
-  if (currentSelected && r > 0) {
-    circleLayer = L.circle([currentSelected.lat, currentSelected.lng], {
-      radius: r * 1000, color: '#f0c027', weight: 1.5,
-      fillColor: '#f0c027', fillOpacity: 0.06, dashArray: '6,4'
-    }).addTo(map);
+function deleteCustomZone(id){
+  customZones=customZones.filter(z=>z.id!==id);
+  studioLines.filter(l=>l._czId===id).forEach(l=>{try{l.setMap(null);}catch(e){}});
+  studioLines=studioLines.filter(l=>l._czId!==id);
+  renderCustomZones();
+}
+
+function clearAllCustomZones(){customZones=[];studioLines.forEach(l=>{try{l.setMap(null);}catch(e){}});studioLines=[];renderCustomZones();}
+
+function renderCustomZones(){
+  const el=document.getElementById('custom-zones-list');
+  document.getElementById('cz-count').textContent=customZones.length;
+  if(!customZones.length){el.innerHTML='<div style="font-size:10px;color:#aaa;padding:6px">No zones saved</div>';return;}
+  el.innerHTML=customZones.map(z=>`
+    <div class="custom-zone-card">
+      <div class="cz-head"><div class="cz-dot" style="background:${z.color}"></div><div class="cz-name">${z.name}</div><div class="cz-score">${z.pins.length}pins·${z.score}</div></div>
+      <div class="cz-pins">${z.pins.map(p=>`<span class="cz-pin-tag" style="background:${z.color}20;color:${z.color}" onclick="flyToPin(${p.pc||0})">${p.pc||p.label}</span>`).join('')}</div>
+      <div style="display:flex;gap:5px"><button class="cz-btn" onclick="showWHDistancesToZone('${z.id}')">WH Dist</button><button class="cz-btn" style="color:#e03030" onclick="deleteCustomZone('${z.id}')">Delete</button></div>
+    </div>`).join('');
+}
+
+function addCustomWH(lat,lng){
+  const label='WH-'+cwId++;
+  const wh={id:'cwh'+(cwId-1),lat,lng,label,distances:[]};
+  customWHPoints.push(wh);
+  const cwhSvg=encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#5c35e8" stroke="white" stroke-width="2"/><text x="16" y="20" text-anchor="middle" font-family="Arial" font-size="9" font-weight="900" fill="white">${label}</text></svg>`);
+  const m=new google.maps.Marker({map,position:{lat,lng},icon:{url:`data:image/svg+xml;charset=UTF-8,${cwhSvg}`,scaledSize:new google.maps.Size(32,32),anchor:new google.maps.Point(16,16)},zIndex:800});
+  m._cwhId=wh.id; studioWHMarkers.push(m);
+  drawWHDistanceLines(wh); renderCustomWHList();
+  setDrawHint('🏭 '+label+' placed · '+lat.toFixed(4)+','+lng.toFixed(4));
+}
+
+function drawWHDistanceLines(wh){
+  studioLines.filter(l=>l._cwhId===wh.id).forEach(l=>{try{l.setMap(null);}catch(e){}});
+  studioLines=studioLines.filter(l=>l._cwhId!==wh.id); wh.distances=[];
+  const targets=customZones.length?customZones.flatMap(z=>z.pins.map(p=>({...p,zoneName:z.name,zoneColor:z.color}))):PINS.filter(p=>p.s>=40).map(p=>({...p,zoneName:p.geo,zoneColor:scoreColor(p.s)}));
+  targets.forEach(p=>{
+    const d=hav({lat:wh.lat,lng:wh.lng},{lat:p.lat,lng:p.lng});
+    wh.distances.push({pc:p.pc,area:p.area,d,zoneName:p.zoneName,zoneColor:p.zoneColor});
+    const col=d<=10?'#2a9d3a':d<=20?'#e07020':'#aaa';
+    const line=new google.maps.Polyline({map,path:[{lat:wh.lat,lng:wh.lng},{lat:p.lat,lng:p.lng}],strokeColor:col,strokeOpacity:0.7,strokeWeight:1.5,geodesic:true});
+    line._cwhId=wh.id;
+  });
+  renderCustomWHList();
+}
+
+function showWHDistancesToZone(zoneId){
+  const z=customZones.find(x=>x.id===zoneId); if(!z)return;
+  customWHPoints.forEach(wh=>{z.pins.forEach(p=>{
+    const d=hav({lat:wh.lat,lng:wh.lng},{lat:p.lat,lng:p.lng});
+    const col=d<=10?'#2a9d3a':d<=20?'#e07020':'#aaa';
+    const line=new google.maps.Polyline({map,path:[{lat:wh.lat,lng:wh.lng},{lat:p.lat,lng:p.lng}],strokeColor:col,strokeOpacity:0.8,strokeWeight:2,geodesic:true});
+    line._cwhId=wh.id; studioLines.push(line);
+  });});
+  setDrawHint('Distances drawn for "'+z.name+'"');
+}
+
+function deleteCustomWH(id){
+  customWHPoints=customWHPoints.filter(w=>w.id!==id);
+  studioWHMarkers.filter(m=>m._cwhId===id).forEach(m=>{try{m.setMap(null);}catch(e){}});studioWHMarkers=studioWHMarkers.filter(m=>m._cwhId!==id);
+  studioLines.filter(l=>l._cwhId===id).forEach(l=>{try{l.setMap(null);}catch(e){}});studioLines=studioLines.filter(l=>l._cwhId!==id);
+  renderCustomWHList();
+}
+
+function renderCustomWHList(){
+  const el=document.getElementById('custom-wh-list'); if(!el)return;
+  if(!customWHPoints.length){el.innerHTML='<div style="font-size:10px;color:#aaa">No WH points yet</div>';return;}
+  el.innerHTML=customWHPoints.map(wh=>{
+    const sorted=[...wh.distances].sort((a,b)=>a.d-b.d).slice(0,5);
+    const w10=wh.distances.filter(d=>d.d<=10).length;
+    return `<div class="custom-wh-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div style="width:24px;height:24px;border-radius:50%;background:#5c35e8;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff">${wh.label}</div>
+        <div style="font-size:12px;font-weight:700;color:#5c35e8;flex:1">${wh.label}</div>
+        <span style="font-size:9px;color:#2a9d3a;font-family:var(--mono)">${w10} ≤13km (40min)</span>
+      </div>
+      <div style="font-size:10px;color:#aaa;margin-bottom:5px;font-family:var(--mono)">${wh.lat.toFixed(4)},${wh.lng.toFixed(4)}</div>
+      ${sorted.map(d=>`<div style="display:flex;justify-content:space-between;font-size:10px;margin:1px 0"><span style="color:${d.zoneColor}">${d.zoneName.slice(0,10)}</span><span style="color:#888">${d.pc||d.area.slice(0,10)}</span><span style="font-family:var(--mono);color:${d.d<=10?'#2a9d3a':d.d<=20?'#e07020':'#aaa'};font-weight:700">${d.d.toFixed(1)}km</span></div>`).join('')}
+      <div style="display:flex;gap:5px;margin-top:6px">
+        <button class="cz-btn" onclick="map.panTo({lat:${wh.lat},lng:${wh.lng}});map.setZoom(13);">Focus</button>
+        <button class="cz-btn" style="color:#e03030" onclick="deleteCustomWH('${wh.id}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ================================================================
+// CLAUDE AI CHATBOT
+// ================================================================
+let chatHistory=[],chatBusy=false;
+
+function buildSystemPrompt(){
+  const pinData=PINS.map(p=>`${p.pc}|${p.area}|${p.geo}|score:${p.s}|hh:${p.hh}|ped:${p.ped}|sch:${p.sch}|kids:${p.pop}|wh:${p.wh}|ds52:${p.ds52}km|ds84:${p.ds84}km|db:${p.db}km`).join('\n');
+  return `You are an expert warehouse location analyst for Ozi — a premium quick commerce in NCR India for 0-10yr kids and young moms. You have FULL NCR data.
+
+SCORING: Income ₹10L+ HH = 40% | Pediatric clinics = 25% | Schools = 20% | Kids under 6 = 10% | Preschools = 5%
+
+EXISTING WHs:
+- WH Gurgaon Sector 52 (28.521,77.085) — covers 17 pincodes, score 274
+- WH Gurgaon Sector 84 (28.406,77.071) — covers 18 pincodes, score 274  
+- WH Bisrakh/Jalalpur Noida (28.546,77.520) — covers 8 pincodes, score 161
+
+COVERAGE STATUS: 36/80 pincodes covered (39.7% score)
+
+KEY GAPS: Delhi (9/29 covered 25%), Faridabad (0/9), Greater Noida (0/1), Noida (3/10 covered)
+
+TOP UNCOVERED: 110092 Mayur Vihar Ph3 (72.9), 201304 Indirapuram (69.7), 201009 Noida Sec50 (56.5), 110085 Rohini (52.5), 203207 Greater Noida (47.8), 201002 Noida Sec15-16 (47.4)
+
+ALL 80 PINCODES:
+${pinData}
+
+Answer in concise Hinglish or English. Use numbers. When recommending zones/pincodes respond with:
+ACTION:{"type":"create_zone","name":"Zone Name","pincodes":[110092,201304],"color":"#e03030"}`;
+}
+
+async function sendChat(){
+  if(chatBusy)return;
+  const input=document.getElementById('chat-input');
+  const msg=input.value.trim(); if(!msg)return;
+  input.value=''; appendUserMsg(msg); await callClaude(msg);
+}
+
+function sendSugg(btn){
+  const msg=btn.textContent; document.getElementById('chat-input').value='';
+  appendUserMsg(msg); document.getElementById('suggested-prompts').style.display='none'; callClaude(msg);
+}
+
+function appendUserMsg(msg){
+  const box=document.getElementById('chat-messages');
+  const div=document.createElement('div'); div.className='chat-msg user-msg'; div.textContent=msg;
+  box.appendChild(div); box.scrollTop=box.scrollHeight; chatHistory.push({role:'user',content:msg});
+}
+
+function appendAIMsg(html,raw){
+  const box=document.getElementById('chat-messages');
+  document.getElementById('typing-indicator')?.remove();
+  const div=document.createElement('div'); div.className='chat-msg ai-msg'; div.innerHTML=html;
+  box.appendChild(div); box.scrollTop=box.scrollHeight; chatHistory.push({role:'assistant',content:raw});
+}
+
+function showTyping(){
+  const box=document.getElementById('chat-messages');
+  const div=document.createElement('div'); div.id='typing-indicator'; div.className='chat-msg ai-msg';
+  div.innerHTML='<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+  box.appendChild(div); box.scrollTop=box.scrollHeight;
+}
+
+async function callClaude(userMsg){
+  chatBusy=true;
+  const btn=document.getElementById('chat-send-btn'); if(btn){btn.disabled=true;btn.textContent='...';}
+  document.getElementById('chat-status').textContent='Claude thinking...'; showTyping();
+  try{
+    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildSystemPrompt(),messages:chatHistory.slice(-12)})});
+    const data=await response.json();
+    const raw=data.content?.find(c=>c.type==='text')?.text||'No response.';
+    const html=formatAI(raw); appendAIMsg(html,raw);
+  }catch(e){
+    document.getElementById('typing-indicator')?.remove();
+    appendAIMsg('<span style="color:#e03030">Error: '+e.message+'</span>','Error');
+  }finally{
+    chatBusy=false; if(btn){btn.disabled=false;btn.textContent='Send';}
+    document.getElementById('chat-status').textContent='';
   }
-  
-  if (r === 5) {
-    map.setView([28.543, 77.225], 13, { animate: true });
-  } else if (r === 10) {
-    map.setView([28.543, 77.225], 12, { animate: true });
+}
+
+function formatAI(text){
+  let action=null;
+  const am=text.match(/ACTION:(\{[^}]+\})/);
+  if(am){try{action=JSON.parse(am[1]);}catch(e){} text=text.replace(/ACTION:\{[^}]+\}/,'').trim();}
+  let html=text.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+  html=html.replace(/\b(1[012]\d{4}|2\d{5})\b/g,pc=>{const p=PINS.find(x=>x.pc===parseInt(pc));return p?`<span class="pin-ref" onclick="flyToPin(${pc})" title="${p.area} · Score ${p.s}">${pc}</span>`:pc;});
+  if(action)setTimeout(()=>executeAction(action),500);
+  return html;
+}
+
+function executeAction(action){
+  if(action.type==='create_zone'){
+    clearActivePins();
+    (action.pincodes||[]).forEach(pc=>{const p=PINS.find(x=>x.pc===pc);if(p)addPinToActive(p);});
+    if(action.name)document.getElementById('zone-name-input').value=action.name;
+    if(action.color)document.getElementById('zone-color-pick').value=action.color;
+    if(action.pincodes?.[0]){const p=PINS.find(x=>x.pc===action.pincodes[0]);if(p)map.panTo({lat:p.lat,lng:p.lng});map.setZoom(12);;}
+    setDrawHint('✅ Zone ready — click Save Zone');
   }
-  
-  updateInsights();
+  if(action.type==='fly_to')flyToPin(action.pc);
 }
 
-function flyToZone(zone) {
-  const c = ZONE_CENTERS[zone];
-  if (c) map.setView([c.lat, c.lng], c.zoom, { animate: true });
+function clearChat(){
+  chatHistory=[];
+  const box=document.getElementById('chat-messages');
+  box.innerHTML='<div class="chat-msg ai-msg"><div style="font-size:11px;color:#555">Cleared! Ask me anything about full NCR coverage.</div></div>';
+  document.getElementById('suggested-prompts').style.display='flex';
+  document.getElementById('chat-status').textContent='';
 }
 
-// ============================================================
+// ================================================================
 // BOOT
-// ============================================================
-window.addEventListener('DOMContentLoaded', initMap);
+// ================================================================
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&document.activeElement.id==='zone-pc-input')addPincodeToZone();
+  if(e.key==='Enter'&&document.activeElement.id==='chat-input'){e.preventDefault();sendChat();}
+  if(e.key==='Enter'&&document.activeElement.id==='d-from')document.getElementById('d-to').focus();
+  if(e.key==='Enter'&&document.activeElement.id==='d-to')calcDist();
+});
+
+try{initMap();}catch(e){console.error('Map init error:',e);}
+buildZones();
+filterPins();
+buildExistingWHPanel();
+buildWHPanel();
+buildDistTable();
+updateCoverageBar();
+renderMotherDistances();
+
+// Stats
+const top40=PINS.filter(p=>p.s>=40).length;
+const covEl=document.getElementById('ov-top'); if(covEl)covEl.textContent=top40;
+const covEl2=document.getElementById('ov-cov'); if(covEl2)covEl2.textContent=PINS.filter(p=>p.covered).length;
 </script>
 </body>
 </html>
